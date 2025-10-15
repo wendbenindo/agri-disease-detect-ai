@@ -1,3 +1,4 @@
+import 'package:agri_desease_detect_app/services/supabase_service.dart';
 import 'dart:io' show Platform;
 import 'package:agri_desease_detect_app/pages/communitypage.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -14,18 +15,45 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    if (!kIsWeb) {
-      await dotenv.load(fileName: ".env");
-    } else {
-      await dotenv.load(fileName: "assets/.env");
-    }
+    // Chargement des variables d'environnement
+    await dotenv.load(fileName: kIsWeb ? "assets/.env" : ".env");
 
-    await _handleLocationPermission(); // Demande de permission
+    // Initialisations critiques
+    await initSupabase();
+    await _handleLocationPermission();
+
+    // Lancement de l'application principale si tout a réussi
+    runApp(const TipTigaApp());
   } catch (e) {
-    debugPrint("Erreur de chargement ou permissions : $e");
+    debugPrint("Erreur critique au démarrage : $e");
+    // En cas d'erreur, on lance une application d'erreur
+    runApp(ErrorApp(error: e.toString()));
   }
+}
 
-  runApp(const TipTigaApp());
+// Widget simple pour afficher une erreur fatale
+class ErrorApp extends StatelessWidget {
+  final String error;
+  const ErrorApp({super.key, required this.error});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        backgroundColor: Colors.red[900],
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              "Erreur critique au démarrage de l'application :\n\n$error",
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 Future<void> _handleLocationPermission() async {
