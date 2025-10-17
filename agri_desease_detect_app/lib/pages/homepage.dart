@@ -119,7 +119,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
         color: backgroundColor,
         boxShadow: [
@@ -133,47 +133,55 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          // Logo TipTiga plus compact
+          Text(
+            'TipTiga',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+              color: primaryDarkGreen,
+              fontFamily: 'SF Pro Display',
+              letterSpacing: -0.5,
+            ),
+          ),
+          // Groupe d'icônes à droite
+          Row(
             children: [
-              Text(
-                'TipTiga',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w800,
-                  color: primaryDarkGreen,
-                  fontFamily: 'SF Pro Display',
-                  letterSpacing: -0.5,
+              // Icône météo
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: IconButton(
+                  icon: Icon(Icons.wb_sunny_rounded, color: Colors.blue.shade700, size: 22),
+                  onPressed: _showWeatherModal,
+                  padding: const EdgeInsets.all(8),
+                  constraints: const BoxConstraints(),
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                'Votre AI agricole intelligent',
-                style: TextStyle(
-                  fontSize: 15,
-                  color: textSecondary,
-                  fontWeight: FontWeight.w500,
-                  fontFamily: 'SF Pro Text',
+              const SizedBox(width: 12),
+              // Icône caméra
+              Container(
+                decoration: BoxDecoration(
+                  color: primaryDarkGreen,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: primaryDarkGreen.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 22),
+                  onPressed: _takePictureAndNavigate,
+                  padding: const EdgeInsets.all(8),
+                  constraints: const BoxConstraints(),
                 ),
               ),
             ],
-          ),
-          Container(
-            decoration: BoxDecoration(
-              color: primaryDarkGreen,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: primaryDarkGreen.withOpacity(0.3),
-                  blurRadius: 12,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 26),
-              onPressed: _takePictureAndNavigate,
-            ),
           ),
         ],
       ),
@@ -430,29 +438,70 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildWeatherSection() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Météo locale',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: textPrimary,
-              fontFamily: 'SF Pro Display',
-            ),
-          ),
-          const SizedBox(height: 18),
-          _weather != null
-              ? _buildWeatherCard()
-              : _weatherError
-                  ? _buildWeatherError()
-                  : _buildWeatherLoading(),
-        ],
-      ),
+  // Modal météo
+  void _showWeatherModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          maxChildSize: 0.9,
+          minChildSize: 0.5,
+          expand: false,
+          builder: (_, controller) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 5,
+                    margin: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView(
+                      controller: controller,
+                      padding: const EdgeInsets.all(24),
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.wb_sunny_rounded, color: primaryDarkGreen, size: 28),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Météo locale',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w700,
+                                color: primaryDarkGreen,
+                                fontFamily: 'SF Pro Display',
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        _weather != null
+                            ? _buildWeatherCard()
+                            : _weatherError
+                                ? _buildWeatherError()
+                                : _buildWeatherLoading(),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -838,16 +887,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             child: CustomScrollView(
               slivers: [
                 SliverToBoxAdapter(child: _buildHeader()),
-                const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                // PERMUTATION : Carrousel en premier maintenant
+                const SliverToBoxAdapter(child: SizedBox(height: 20)),
+                // Carrousel en premier
                 SliverToBoxAdapter(child: _buildCarouselSection()),
-                const SliverToBoxAdapter(child: SizedBox(height: 32)),
-                // Cultures en deuxième
-                SliverToBoxAdapter(child: _buildCulturesList()),
-                const SliverToBoxAdapter(child: SizedBox(height: 32)),
+                const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                // Bouton principal juste après le carrousel
                 SliverToBoxAdapter(child: _buildMainActionButton()),
-                const SliverToBoxAdapter(child: SizedBox(height: 32)),
-                SliverToBoxAdapter(child: _buildWeatherSection()),
+                const SliverToBoxAdapter(child: SizedBox(height: 28)),
+                // Cultures disponibles
+                SliverToBoxAdapter(child: _buildCulturesList()),
                 const SliverToBoxAdapter(child: SizedBox(height: 40)),
               ],
             ),
