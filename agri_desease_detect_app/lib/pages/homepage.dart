@@ -271,10 +271,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         Stack(
           alignment: Alignment.center,
           children: [
-            // Carousel des maladies
+            // Carousel des maladies - HAUTEUR AUGMENTÉE
             CarouselSlider(
               options: CarouselOptions(
-                height: 200,
+                height: 280,
                 autoPlay: true,
                 autoPlayInterval: const Duration(seconds: 4),
                 viewportFraction: 1.0,
@@ -305,49 +305,53 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 );
               }).toList(),
             ),
-            // Overlay "Comment ça marche"
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 40),
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.95),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.8),
-                  width: 1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
+            // Overlay "Comment ça marche" - PLUS PETIT ET COMPACT
+            Positioned(
+              bottom: 20,
+              left: 60,
+              right: 60,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.95),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.8),
+                    width: 1,
                   ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Comment ça marche ?',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: primaryDarkGreen,
-                      fontFamily: 'SF Pro Display',
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 15,
+                      offset: const Offset(0, 6),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildStepIcon(Icons.camera_alt_rounded, 'Photo', primaryDarkGreen),
-                      _buildArrow(),
-                      _buildStepIcon(Icons.psychology_rounded, 'Analyse', Colors.blue.shade700),
-                      _buildArrow(),
-                      _buildStepIcon(Icons.medical_services_rounded, 'Traitement', Colors.red.shade600),
-                    ],
-                  ),
-                ],
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Comment ça marche ?',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: primaryDarkGreen,
+                        fontFamily: 'SF Pro Display',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildStepIcon(Icons.camera_alt_rounded, 'Photo', primaryDarkGreen),
+                        _buildArrow(),
+                        _buildStepIcon(Icons.psychology_rounded, 'Analyse', Colors.blue.shade700),
+                        _buildArrow(),
+                        _buildStepIcon(Icons.medical_services_rounded, 'Soin', Colors.red.shade600),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -360,20 +364,20 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     return Column(
       children: [
         Container(
-          width: 52,
-          height: 52,
+          width: 38,
+          height: 38,
           decoration: BoxDecoration(
             color: color.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: color.withOpacity(0.3), width: 1.5),
           ),
-          child: Icon(icon, color: color, size: 26),
+          child: Icon(icon, color: color, size: 20),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Text(
           label,
           style: TextStyle(
-            fontSize: 13,
+            fontSize: 10,
             fontWeight: FontWeight.w600,
             color: textSecondary,
             fontFamily: 'SF Pro Text',
@@ -386,7 +390,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   Widget _buildArrow() {
     return Icon(
       Icons.arrow_forward_ios_rounded,
-      size: 16,
+      size: 12,
       color: Colors.grey[400],
     );
   }
@@ -835,9 +839,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               slivers: [
                 SliverToBoxAdapter(child: _buildHeader()),
                 const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                SliverToBoxAdapter(child: _buildCulturesList()),
-                const SliverToBoxAdapter(child: SizedBox(height: 32)),
+                // PERMUTATION : Carrousel en premier maintenant
                 SliverToBoxAdapter(child: _buildCarouselSection()),
+                const SliverToBoxAdapter(child: SizedBox(height: 32)),
+                // Cultures en deuxième
+                SliverToBoxAdapter(child: _buildCulturesList()),
                 const SliverToBoxAdapter(child: SizedBox(height: 32)),
                 SliverToBoxAdapter(child: _buildMainActionButton()),
                 const SliverToBoxAdapter(child: SizedBox(height: 32)),
