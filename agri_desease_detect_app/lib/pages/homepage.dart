@@ -271,10 +271,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         Stack(
           alignment: Alignment.center,
           children: [
-            // Carousel des maladies - HAUTEUR AUGMENTÉE
+            // Carousel des maladies
             CarouselSlider(
               options: CarouselOptions(
-                height: 280,
+                height: 220,
                 autoPlay: true,
                 autoPlayInterval: const Duration(seconds: 4),
                 viewportFraction: 1.0,
@@ -305,7 +305,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 );
               }).toList(),
             ),
-            // Overlay "Comment ça marche" - PLUS PETIT ET COMPACT
+            // Overlay "Comment ça marche"
             Positioned(
               bottom: 20,
               left: 60,
