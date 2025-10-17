@@ -13,6 +13,7 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   late VideoPlayerController _controller;
+  bool _isDisposed = false;
 
   @override
   void initState() {
@@ -21,25 +22,27 @@ class _SplashScreenState extends State<SplashScreen> {
     _controller = VideoPlayerController.asset('assets/videos/splash_bg.mp4')
       ..setVolume(0.0) // Désactive le son
       ..initialize().then((_) {
-        setState(() {});
-        _controller.setLooping(true);
-        _controller.play();
+        if (mounted && !_isDisposed) {
+          setState(() {});
+          _controller.setLooping(true);
+          _controller.play();
+        }
       });
 
     Timer(const Duration(seconds: 7), () {
-      _controller.pause();
-      _controller.dispose();
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const NavigationController()),
-      );
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const NavigationController()),
+        );
+      }
     });
   }
 
   @override
   void dispose() {
-    if (_controller.value.isInitialized) {
-      _controller.dispose();
-    }
+    _isDisposed = true;
+    _controller.pause();
+    _controller.dispose();
     super.dispose();
   }
 
