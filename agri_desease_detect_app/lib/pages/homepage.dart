@@ -144,16 +144,34 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Logo TipTiga plus compact
-          Text(
-            'TipTiga',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: primaryDarkGreen,
-              fontFamily: 'SF Pro Display',
-              letterSpacing: -0.5,
-            ),
+          // Logo TipTiga
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: primaryDarkGreen.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Image.asset(
+                  'assets/images/tiptiga.png',
+                  width: 44,
+                  height: 44,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'TipTiga',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: primaryDarkGreen,
+                  fontFamily: 'SF Pro Display',
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
           ),
           // Groupe d'icônes à droite
           Row(
