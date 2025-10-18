@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:agri_desease_detect_app/services/model_update_service.dart';
 import 'package:agri_desease_detect_app/widgets/theme.dart';
+import 'package:agri_desease_detect_app/utils/disease_translations.dart';
 
 class ImageAnalysisModule extends StatefulWidget {
   final File image;
@@ -135,10 +136,14 @@ class _ImageAnalysisModuleState extends State<ImageAnalysisModule> {
 
       _topPredictions = top3.map((e) {
         String label = (_labels.isNotEmpty && e.key < _labels.length) ? _labels[e.key] : 'Classe ${e.key}';
-        return MapEntry(label, e.value);
+        // Traduction en français
+        String translatedLabel = DiseaseTranslations.translate(label);
+        return MapEntry(translatedLabel, e.value);
       }).toList();
 
       String predictedClass = (_labels.isNotEmpty && predictedIndex < _labels.length) ? _labels[predictedIndex] : 'Classe $predictedIndex';
+      // Traduction en français
+      predictedClass = DiseaseTranslations.translate(predictedClass);
 
       if (mounted) {
         setState(() {
@@ -476,7 +481,7 @@ class _ImageAnalysisModuleState extends State<ImageAnalysisModule> {
   }
 
   void _shareResult() {
-    final text = 'TipTiga Analyse\n\nMaladie détectée : $_predictedClass\nConfiance : ${(_confidence * 100).toStringAsFixed(1)}%\nModèle : v$_modelVersion';
+    final text = 'TipTiga - Analyse de culture\n\n🌿 Diagnostic : $_predictedClass\n📊 Confiance : ${(_confidence * 100).toStringAsFixed(1)}%\n🤖 Modèle : v$_modelVersion\n\nDétecté avec TipTiga - Votre assistant agricole intelligent';
     Share.share(text, subject: 'Résultat d\'analyse TipTiga');
   }
 
