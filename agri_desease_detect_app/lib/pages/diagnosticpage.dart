@@ -103,7 +103,9 @@ class _DiagnosticPageState extends State<DiagnosticPage> {
     );
   }
 
-  void _showCultureSelector() {
+  void _showModelSelector() async {
+    final models = await _modelUpdateService.listLocalModels();
+    if (!mounted) return;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -118,48 +120,34 @@ class _DiagnosticPageState extends State<DiagnosticPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Sélectionner la culture',
+                const Text('Sélectionner un modèle',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
-                ...cultures.map((c) => ListTile(
-                      leading: Image.asset(c['image']!, width: 40, height: 40, fit: BoxFit.cover),
-                      title: Text(c['nom']!),
-                      onTap: () async {
-                        Navigator.of(context).pop();
-                        await _onSelectCulture(c);
-                      },
-                    )),
+                if (models.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Text('Aucun modèle local. Vérifiez les mises à jour.'),
+                  )
+                else
+                  ...models.map((m) => ListTile(
+                        leading: const Icon(Icons.memory),
+                        title: Text(m.name),
+                        subtitle: Text('v${m.version}'),
+                        onTap: () async {
+                          Navigator.of(context).pop();
+                          await _modelUpdateService.setCurrentModel(path: m.path, version: m.version);
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Modèle sélectionné: ${m.name}')),
+                          );
+                        },
+                      )),
               ],
             ),
           ),
         );
       },
     );
-  }
-
-  Future<void> _onSelectCulture(Map<String, String> culture) async {
-    final name = culture['nom'] ?? '';
-    final type = _normalizePlantFromName(name);
-    await _modelUpdateService.setCurrentPlantType(type);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Culture active: $name')),
-    );
-    final results = await Connectivity().checkConnectivity();
-    if (!results.contains(ConnectivityResult.none)) {
-      await _modelUpdateService.checkForUpdatesUsingCurrentPlant();
-      if (_modelUpdateService.isUpdateAvailable.value) {
-        await _modelUpdateService.showUpdateDialog(context);
-      }
-    }
-  }
-
-  String _normalizePlantFromName(String name) {
-    final lower = name.toLowerCase();
-    if (lower.contains('maïs') || lower.contains('mais')) return 'mais';
-    if (lower.contains('mil')) return 'mil';
-    if (lower.contains('sorgho')) return 'sorgho';
-    return lower;
   }
 
   @override
@@ -179,9 +167,9 @@ class _DiagnosticPageState extends State<DiagnosticPage> {
         elevation: 1,
         actions: [
           IconButton(
-            icon: const Icon(Icons.agriculture),
-            tooltip: 'Changer de culture/modèle',
-            onPressed: _showCultureSelector,
+            icon: const Icon(Icons.model_training),
+            tooltip: 'Sélectionner modèle',
+            onPressed: _showModelSelector,
           ),
           IconButton(
             icon: const Icon(Icons.history),

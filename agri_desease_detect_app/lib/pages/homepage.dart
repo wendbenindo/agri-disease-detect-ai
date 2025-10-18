@@ -24,7 +24,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   WeatherModel? _weather;
   bool _loading = false;
   bool _weatherError = false;
-  String? _activePlantType;
   String? _modelVersion;
 
   // Couleurs du thème - dominance blanche avec accent vert foncé
@@ -66,7 +65,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     // Offline-first: ne vérifie qu'en présence de connexion
     Connectivity().checkConnectivity().then((results) async {
       if (!results.contains(ConnectivityResult.none)) {
-        await _modelUpdateService.checkForUpdatesUsingCurrentPlant();
+        await _modelUpdateService.checkForUpdatesGlobal();
       }
     });
   }
@@ -173,20 +172,43 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 ),
               ),
               const SizedBox(width: 12),
-              // Icône MAJ modèle
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.system_update_alt_rounded, size: 22),
-                  color: Colors.orange.shade800,
-                  tooltip: 'Vérifier les mises à jour du modèle',
-                  onPressed: _manualCheckForUpdates,
-                  padding: const EdgeInsets.all(8),
-                  constraints: const BoxConstraints(),
-                ),
+              // Icône MAJ modèle avec badge
+              ValueListenableBuilder<bool>(
+                valueListenable: _modelUpdateService.isUpdateAvailable,
+                builder: (context, hasUpdate, _) {
+                  return Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: IconButton(
+                          icon: const Icon(Icons.system_update_alt_rounded, size: 22),
+                          color: Colors.orange.shade800,
+                          tooltip: 'Vérifier les mises à jour du modèle',
+                          onPressed: _manualCheckForUpdates,
+                          padding: const EdgeInsets.all(8),
+                          constraints: const BoxConstraints(),
+                        ),
+                      ),
+                      if (hasUpdate)
+                        Positioned(
+                          right: -2,
+                          top: -2,
+                          child: Container(
+                            width: 10,
+                            height: 10,
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
               ),
               const SizedBox(width: 12),
               // Icône caméra
@@ -241,7 +263,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             itemCount: cultures.length,
             itemBuilder: (context, index) {
               return GestureDetector(
-                onTap: () => _onSelectCulture(cultures[index]),
+                onTap: () => _showCultureDetails(cultures[index]),
                 child: Container(
                   margin: const EdgeInsets.only(right: 16),
                   child: Column(
@@ -303,44 +325,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   Future<void> _loadActivePlantType() async {
     try {
-      final type = await _modelUpdateService.getCurrentPlantType();
       final info = await _modelUpdateService.getCurrentModelInfo();
       if (mounted) {
         setState(() {
-          _activePlantType = type;
           _modelVersion = info.version;
         });
       }
     } catch (_) {}
   }
 
-  Future<void> _onSelectCulture(Map<String, String> culture) async {
-    final name = culture['nom'] ?? '';
-    final type = _normalizePlantFromName(name);
-    await _modelUpdateService.setCurrentPlantType(type);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Culture active: $name')),
-      );
-    }
-    // Vérifie MAJ si en ligne
-    final results = await Connectivity().checkConnectivity();
-    if (!results.contains(ConnectivityResult.none)) {
-      await _modelUpdateService.checkForUpdatesUsingCurrentPlant();
-    }
-    _showCultureDetails(culture);
-  }
-
-  String _normalizePlantFromName(String name) {
-    final lower = name.toLowerCase();
-    if (lower.contains('maïs') || lower.contains('mais')) return 'mais';
-    if (lower.contains('mil')) return 'mil';
-    if (lower.contains('sorgho')) return 'sorgho';
-    return lower;
-  }
-
   Widget _buildModelInfoBar() {
-    final type = _activePlantType ?? '—';
     final ver = _modelVersion ?? '—';
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -356,7 +350,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Modèle: $type  •  v$ver',
+              'Modèle: v$ver',
               style: const TextStyle(fontWeight: FontWeight.w600),
               overflow: TextOverflow.ellipsis,
             ),
@@ -381,7 +375,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       }
       return;
     }
-    await _modelUpdateService.checkForUpdatesUsingCurrentPlant();
+    await _modelUpdateService.checkForUpdatesGlobal();
     if (_modelUpdateService.isUpdateAvailable.value) {
       // Affiche le dialogue si une MAJ est disponible
       if (mounted) await _modelUpdateService.showUpdateDialog(context);

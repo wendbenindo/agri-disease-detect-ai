@@ -19,6 +19,13 @@ class ModelInfo {
   ModelInfo({required this.version, required this.path, required this.labelsPath});
 }
 
+class LocalModel {
+  final String name;
+  final String path;
+  final String version;
+  LocalModel({required this.name, required this.path, required this.version});
+}
+
 class ModelUpdateService {
   static const String _currentVersionKey = 'current_model_version';
   static const String _currentPathKey = 'current_model_path';
@@ -50,12 +57,15 @@ class ModelUpdateService {
   /// Interroge Supabase pour obtenir les informations du dernier modèle actif.
   Future<Map<String, dynamic>?> getLatestModelInfo(String plantType) async {
     try {
+      // Robustesse: en cas de plusieurs lignes actives, on prend la plus récente
       final response = await supabase
           .from('active_models')
           .select()
           .eq('plant_type', plantType)
           .eq('is_active', true)
-          .single();
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
       return response;
     } catch (e) {
       debugPrint("Erreur lors de la récupération du dernier modèle depuis Supabase: $e");
@@ -68,12 +78,15 @@ class ModelUpdateService {
     final ModelInfo currentModel = await getCurrentModelInfo();
     _latestModelData = await getLatestModelInfo(normalizePlantType(plantType));
 
-    if (_latestModelData == null) return;
+    if (_latestModelData == null) {
+      isUpdateAvailable.value = false;
+      return;
+    }
 
-    final String latestVersion = _latestModelData!['version'];
+    final String latestVersion = (_latestModelData!['version'] as String?) ?? '';
     final String currentVersion = currentModel.version;
 
-    if (latestVersion.compareTo(currentVersion) > 0) {
+    if (_compareSemver(latestVersion, currentVersion) > 0) {
       isUpdateAvailable.value = true;
     } else {
       isUpdateAvailable.value = false;
@@ -216,7 +229,12 @@ class ModelUpdateService {
     }
   }
 
-  /// Variante: utilise le plantType enregistré
+  /// Variante: utilise un modèle global (pas de culture)
+  Future<void> checkForUpdatesGlobal() async {
+    await checkForUpdates('global');
+  }
+
+  /// Variante: utilise le plantType enregistré (conservée pour compat)
   Future<void> checkForUpdatesUsingCurrentPlant() async {
     final type = await getCurrentPlantType();
     await checkForUpdates(type);
@@ -230,19 +248,12 @@ class ModelUpdateService {
 
   Future<String> getCurrentPlantType() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_currentPlantTypeKey) ?? 'mais';
+    return prefs.getString(_currentPlantTypeKey) ?? 'global';
   }
 
   String normalizePlantType(String input) {
-    final lower = input.toLowerCase().trim();
-    // retire accents basiques
-    final map = {
-      'maïs': 'mais',
-      'mais': 'mais',
-      'mil': 'mil',
-      'sorgho': 'sorgho',
-    };
-    return map[lower] ?? lower;
+    // Mode global: on ignore l'input et on renvoie 'global'
+    return 'global';
   }
 
   void _showSnack(BuildContext context, String message) {
@@ -256,6 +267,23 @@ class ModelUpdateService {
   String _sha256Hex(Uint8List bytes) {
     final digest = crypto.sha256.convert(bytes);
     return digest.toString();
+  }
+
+  /// Compare deux versions sémantiques (ex: 2.1.0 > 2.0.9). Retourne -1, 0, 1.
+  int _compareSemver(String a, String b) {
+    List<int> parse(String v) {
+      final parts = v.split(RegExp(r'[^0-9]+')).where((e) => e.isNotEmpty).toList();
+      final nums = parts.map((e) => int.tryParse(e) ?? 0).toList();
+      while (nums.length < 3) nums.add(0);
+      return nums.take(3).toList();
+    }
+
+    final aa = parse(a);
+    final bb = parse(b);
+    for (int i = 0; i < 3; i++) {
+      if (aa[i] != bb[i]) return aa[i] > bb[i] ? 1 : -1;
+    }
+    return 0;
   }
 
   /// Télécharge un fichier Supabase avec retries et backoff exponentiel + jitter.
@@ -279,6 +307,35 @@ class ModelUpdateService {
         debugPrint('Téléchargement échoué (tentative $attempt/$maxRetries) pour $path: $e. Nouvelle tentative dans ${delay.inMilliseconds}ms');
         await Future.delayed(delay);
       }
+    }
+  }
+
+  /// Liste les modèles .tflite présents en local (Documents)
+  Future<List<LocalModel>> listLocalModels() async {
+    final dir = await getApplicationDocumentsDirectory();
+    final d = Directory(dir.path);
+    if (!await d.exists()) return [];
+    final files = await d.list().toList();
+    final models = <LocalModel>[];
+    for (final f in files) {
+      if (f is File && f.path.endsWith('.tflite')) {
+        final name = f.uri.pathSegments.isNotEmpty ? f.uri.pathSegments.last : f.path;
+        // tente d'extraire une version simple depuis le nom (ex: _v1_2 -> 1.2)
+        final versionMatch = RegExp(r'v(\d+)[._](\d+)').firstMatch(name);
+        final version = versionMatch != null ? '${versionMatch.group(1)}.${versionMatch.group(2)}' : 'local';
+        models.add(LocalModel(name: name, path: f.path, version: version));
+      }
+    }
+    return models;
+  }
+
+  /// Définit un modèle local comme actif
+  Future<void> setCurrentModel({required String path, required String version, String? labelsPath}) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_currentPathKey, path);
+    await prefs.setString(_currentVersionKey, version);
+    if (labelsPath != null) {
+      await prefs.setString(_currentLabelsPathKey, labelsPath);
     }
   }
 
