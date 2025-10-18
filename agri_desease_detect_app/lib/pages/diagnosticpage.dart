@@ -1,6 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:agri_desease_detect_app/services/model_update_service.dart';
+import 'package:agri_desease_detect_app/utils/app_data.dart';
 import 'image_analyse_module.dart';
 
 class DiagnosticPage extends StatefulWidget {
@@ -15,6 +18,7 @@ class DiagnosticPage extends StatefulWidget {
 class _DiagnosticPageState extends State<DiagnosticPage> {
   File? _selectedImage;
   List<File> _history = [];
+  final ModelUpdateService _modelUpdateService = ModelUpdateService();
 
   @override
   void initState() {
@@ -99,6 +103,65 @@ class _DiagnosticPageState extends State<DiagnosticPage> {
     );
   }
 
+  void _showCultureSelector() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Sélectionner la culture',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                ...cultures.map((c) => ListTile(
+                      leading: Image.asset(c['image']!, width: 40, height: 40, fit: BoxFit.cover),
+                      title: Text(c['nom']!),
+                      onTap: () async {
+                        Navigator.of(context).pop();
+                        await _onSelectCulture(c);
+                      },
+                    )),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _onSelectCulture(Map<String, String> culture) async {
+    final name = culture['nom'] ?? '';
+    final type = _normalizePlantFromName(name);
+    await _modelUpdateService.setCurrentPlantType(type);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Culture active: $name')),
+    );
+    final results = await Connectivity().checkConnectivity();
+    if (!results.contains(ConnectivityResult.none)) {
+      await _modelUpdateService.checkForUpdatesUsingCurrentPlant();
+      if (_modelUpdateService.isUpdateAvailable.value) {
+        await _modelUpdateService.showUpdateDialog(context);
+      }
+    }
+  }
+
+  String _normalizePlantFromName(String name) {
+    final lower = name.toLowerCase();
+    if (lower.contains('maïs') || lower.contains('mais')) return 'mais';
+    if (lower.contains('mil')) return 'mil';
+    if (lower.contains('sorgho')) return 'sorgho';
+    return lower;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -115,6 +178,11 @@ class _DiagnosticPageState extends State<DiagnosticPage> {
         centerTitle: true,
         elevation: 1,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.agriculture),
+            tooltip: 'Changer de culture/modèle',
+            onPressed: _showCultureSelector,
+          ),
           IconButton(
             icon: const Icon(Icons.history),
             onPressed: _showHistoryModal,

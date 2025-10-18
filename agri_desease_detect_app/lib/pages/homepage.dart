@@ -24,6 +24,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   WeatherModel? _weather;
   bool _loading = false;
   bool _weatherError = false;
+  String? _activePlantType;
+  String? _modelVersion;
 
   // Couleurs du thème - dominance blanche avec accent vert foncé
   static const Color primaryDarkGreen = Color(0xFF1B5E20);
@@ -41,22 +43,32 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     _loadWeather();
     _initModelUpdateListener();
     _initConnectivityListener();
+    // Nettoyage opportuniste des anciens fichiers
+    _modelUpdateService.cleanupOrphanModelFiles();
+    _loadActivePlantType();
   }
 
   void _initConnectivityListener() {
-    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> result) {
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> result) async {
       // Si on détecte une connexion et qu'il y avait une erreur météo, on réessaye.
       if (!result.contains(ConnectivityResult.none) && _weatherError) {
         _loadWeather();
+      }
+      // Relance un check de MAJ si on vient de se reconnecter
+      if (!result.contains(ConnectivityResult.none)) {
+        await _modelUpdateService.checkForUpdatesUsingCurrentPlant();
       }
     });
   }
 
   void _initModelUpdateListener() {
     _modelUpdateService.isUpdateAvailable.addListener(_onModelUpdate);
-    // Lance la vérification des mises à jour pour un type de plante spécifique.
-    // TODO: Rendre le `plantType` dynamique en fonction du contexte de l'utilisateur.
-    _modelUpdateService.checkForUpdates('mais');
+    // Offline-first: ne vérifie qu'en présence de connexion
+    Connectivity().checkConnectivity().then((results) async {
+      if (!results.contains(ConnectivityResult.none)) {
+        await _modelUpdateService.checkForUpdatesUsingCurrentPlant();
+      }
+    });
   }
 
   void _onModelUpdate() {
@@ -161,6 +173,22 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 ),
               ),
               const SizedBox(width: 12),
+              // Icône MAJ modèle
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.system_update_alt_rounded, size: 22),
+                  color: Colors.orange.shade800,
+                  tooltip: 'Vérifier les mises à jour du modèle',
+                  onPressed: _manualCheckForUpdates,
+                  padding: const EdgeInsets.all(8),
+                  constraints: const BoxConstraints(),
+                ),
+              ),
+              const SizedBox(width: 12),
               // Icône caméra
               Container(
                 decoration: BoxDecoration(
@@ -213,7 +241,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             itemCount: cultures.length,
             itemBuilder: (context, index) {
               return GestureDetector(
-                onTap: () => _showCultureDetails(cultures[index]),
+                onTap: () => _onSelectCulture(cultures[index]),
                 child: Container(
                   margin: const EdgeInsets.only(right: 16),
                   child: Column(
@@ -271,6 +299,101 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         ),
       ],
     );
+  }
+
+  Future<void> _loadActivePlantType() async {
+    try {
+      final type = await _modelUpdateService.getCurrentPlantType();
+      final info = await _modelUpdateService.getCurrentModelInfo();
+      if (mounted) {
+        setState(() {
+          _activePlantType = type;
+          _modelVersion = info.version;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _onSelectCulture(Map<String, String> culture) async {
+    final name = culture['nom'] ?? '';
+    final type = _normalizePlantFromName(name);
+    await _modelUpdateService.setCurrentPlantType(type);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Culture active: $name')),
+      );
+    }
+    // Vérifie MAJ si en ligne
+    final results = await Connectivity().checkConnectivity();
+    if (!results.contains(ConnectivityResult.none)) {
+      await _modelUpdateService.checkForUpdatesUsingCurrentPlant();
+    }
+    _showCultureDetails(culture);
+  }
+
+  String _normalizePlantFromName(String name) {
+    final lower = name.toLowerCase();
+    if (lower.contains('maïs') || lower.contains('mais')) return 'mais';
+    if (lower.contains('mil')) return 'mil';
+    if (lower.contains('sorgho')) return 'sorgho';
+    return lower;
+  }
+
+  Widget _buildModelInfoBar() {
+    final type = _activePlantType ?? '—';
+    final ver = _modelVersion ?? '—';
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.green.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.green.shade200),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.agriculture, color: Color(0xFF1B5E20), size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Modèle: $type  •  v$ver',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          TextButton.icon(
+            onPressed: _manualCheckForUpdates,
+            icon: const Icon(Icons.refresh, size: 16),
+            label: const Text('Vérifier'),
+          )
+        ],
+      ),
+    );
+  }
+
+  Future<void> _manualCheckForUpdates() async {
+    final results = await Connectivity().checkConnectivity();
+    if (results.contains(ConnectivityResult.none)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Hors ligne. Reconnectez-vous pour vérifier.')),
+        );
+      }
+      return;
+    }
+    await _modelUpdateService.checkForUpdatesUsingCurrentPlant();
+    if (_modelUpdateService.isUpdateAvailable.value) {
+      // Affiche le dialogue si une MAJ est disponible
+      if (mounted) await _modelUpdateService.showUpdateDialog(context);
+      // Après mise à jour potentielle, recharger meta
+      await _loadActivePlantType();
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Aucune mise à jour disponible.')),
+        );
+      }
+    }
   }
 
   Widget _buildCarouselSection() {
@@ -887,6 +1010,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             child: CustomScrollView(
               slivers: [
                 SliverToBoxAdapter(child: _buildHeader()),
+                SliverToBoxAdapter(child: _buildModelInfoBar()),
                 const SliverToBoxAdapter(child: SizedBox(height: 20)),
                 // Carrousel en premier
                 SliverToBoxAdapter(child: _buildCarouselSection()),

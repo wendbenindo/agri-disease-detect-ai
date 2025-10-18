@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:tflite_flutter/tflite_flutter.dart';
+import 'package:agri_desease_detect_app/services/model_update_service.dart';
 
 class ImageAnalysisModule extends StatefulWidget {
   final File image;
@@ -18,14 +19,7 @@ class _ImageAnalysisModuleState extends State<ImageAnalysisModule> {
   bool _isLoading = true;
   int _currentStep = 0;
 
-  final List<String> _classNames = [
-    'Healthy',
-    'Maize Leaf Spot',
-    'Maize Streak',
-    'Mil Sorgho',
-    'Sorghum Blight',
-    'Sorghum Rust',
-  ];
+  List<String> _labels = [];
 
   @override
   void initState() {
@@ -33,7 +27,29 @@ class _ImageAnalysisModuleState extends State<ImageAnalysisModule> {
     _startAnalysisProcess();
   }
 
+  Future<Interpreter> _loadInterpreter() async {
+    final modelInfo = await ModelUpdateService().getCurrentModelInfo();
+    try {
+      if (modelInfo.path.startsWith('assets/')) {
+        return Interpreter.fromAsset(modelInfo.path);
+      } else {
+        return Interpreter.fromFile(File(modelInfo.path));
+      }
+    } catch (_) {
+      // Fallback asset si chargement local échoue
+      return Interpreter.fromAsset('assets/model/plant_disease_model.tflite');
+    }
+  }
+
+  Future<void> _loadLabels() async {
+    try {
+      final labels = await ModelUpdateService().getCurrentLabels();
+      if (mounted) setState(() => _labels = labels);
+    } catch (_) {}
+  }
+
   Future<void> _startAnalysisProcess() async {
+    await _loadLabels();
     await Future.delayed(const Duration(milliseconds: 500));
     setState(() => _currentStep = 1);
     await Future.delayed(const Duration(milliseconds: 500));
@@ -43,7 +59,7 @@ class _ImageAnalysisModuleState extends State<ImageAnalysisModule> {
 
   Future<void> _analyzeImage() async {
     try {
-      final interpreter = await Interpreter.fromAsset('assets/model/plant_disease_model.tflite');
+      final interpreter = await _loadInterpreter();
 
       final imageBytes = await widget.image.readAsBytes();
       img.Image? oriImage = img.decodeImage(imageBytes);
@@ -66,15 +82,23 @@ class _ImageAnalysisModuleState extends State<ImageAnalysisModule> {
       }
 
       final inputBuffer = input.buffer.asFloat32List().reshape([1, 224, 224, 3]);
-      final output = List.filled(_classNames.length, 0.0).reshape([1, _classNames.length]);
+      // Déduit le nombre de classes depuis le tenseur de sortie du modèle
+      final outShape = interpreter.getOutputTensor(0).shape; // ex: [1, N]
+      final int numClasses = outShape.isNotEmpty ? outShape.last : (_labels.isNotEmpty ? _labels.length : 6);
+      final output = List.filled(numClasses, 0.0).reshape([1, numClasses]);
 
       interpreter.run(inputBuffer, output);
       interpreter.close();
 
-      final result = output[0] as List<double>;
+      final result = List<double>.from(output[0]);
       final maxProb = result.reduce((a, b) => a > b ? a : b);
       final predictedIndex = result.indexOf(maxProb);
-      final predictedClass = _classNames[predictedIndex];
+      String predictedClass;
+      if (_labels.isNotEmpty && predictedIndex < _labels.length) {
+        predictedClass = _labels[predictedIndex];
+      } else {
+        predictedClass = 'Classe $predictedIndex';
+      }
 
       setState(() {
         _result = '🌿 Classe prédite : $predictedClass\n🔬 Confiance : ${(maxProb * 100).toStringAsFixed(2)}%';
