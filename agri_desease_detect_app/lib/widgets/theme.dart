@@ -1,77 +1,101 @@
 import 'package:flutter/material.dart';
 
+// Palette de couleurs centralisée (alignée sur HomePage)
+class AppColors {
+  static const Color primaryDarkGreen = Color(0xFF1B5E20);
+  static const Color accentGreen = Color(0xFF2E7D32);
+  static const Color lightGreen = Color(0xFFF0FDF4);
+  static const Color lightGray = Color(0xFFF5F5F5);
+  static const Color backgroundColor = Colors.white;
+  static const Color cardColor = Colors.white;
+  static const Color textPrimary = Color(0xFF212121);
+  static const Color textSecondary = Color(0xFF757575);
+  static const Color successGreen = Color(0xFF4CAF50);
+  static const Color warningOrange = Color(0xFFFF9800);
+  static const Color errorRed = Color(0xFFF44336);
+}
+
 final ThemeData tipTigaTheme = ThemeData(
   useMaterial3: true,
-  primaryColor: const Color(0xFF15803D), // Tailwind green-700
-  scaffoldBackgroundColor: Colors.white,
-  fontFamily: 'Roboto',
+  primaryColor: AppColors.primaryDarkGreen,
+  scaffoldBackgroundColor: AppColors.backgroundColor,
+  fontFamily: 'SF Pro Display',
   appBarTheme: const AppBarTheme(
-    backgroundColor: Color(0xFF15803D), // Tailwind green-700
-    foregroundColor: Colors.white,
-    elevation: 0,
+    backgroundColor: AppColors.backgroundColor,
+    foregroundColor: AppColors.primaryDarkGreen,
+    elevation: 1,
     centerTitle: true,
     titleTextStyle: TextStyle(
       fontSize: 20,
-      fontWeight: FontWeight.bold,
-      color: Colors.white,
+      fontWeight: FontWeight.w700,
+      color: AppColors.primaryDarkGreen,
+      fontFamily: 'SF Pro Display',
     ),
   ),
   textTheme: const TextTheme(
     displayLarge: TextStyle(
       fontSize: 32,
-      fontWeight: FontWeight.bold,
-      color: Color(0xFF15803D), // green-700
+      fontWeight: FontWeight.w800,
+      color: AppColors.primaryDarkGreen,
+      fontFamily: 'SF Pro Display',
     ),
     headlineMedium: TextStyle(
       fontSize: 24,
-      fontWeight: FontWeight.w600,
-      color: Colors.black,
+      fontWeight: FontWeight.w700,
+      color: AppColors.textPrimary,
+      fontFamily: 'SF Pro Display',
     ),
     bodyLarge: TextStyle(
       fontSize: 16,
-      color: Colors.black87,
+      color: AppColors.textPrimary,
+      fontFamily: 'SF Pro Text',
     ),
     bodyMedium: TextStyle(
       fontSize: 14,
-      color: Colors.black54,
+      color: AppColors.textSecondary,
+      fontFamily: 'SF Pro Text',
     ),
     labelLarge: TextStyle(
       fontSize: 14,
-      fontWeight: FontWeight.w500,
-      color: Color(0xFF3B82F6), // blue-500
+      fontWeight: FontWeight.w600,
+      color: AppColors.accentGreen,
+      fontFamily: 'SF Pro Text',
     ),
   ),
   colorScheme: const ColorScheme(
     brightness: Brightness.light,
-    primary: Color(0xFF15803D), // green-700
+    primary: AppColors.primaryDarkGreen,
     onPrimary: Colors.white,
-    secondary: Color(0xFF3B82F6), // blue-500
+    secondary: AppColors.accentGreen,
     onSecondary: Colors.white,
-    error: Colors.red,
+    error: AppColors.errorRed,
     onError: Colors.white,
-    background: Colors.white,
-    onBackground: Colors.black,
-    surface: Colors.white,
-    onSurface: Colors.black,
+    surface: AppColors.backgroundColor,
+    onSurface: AppColors.textPrimary,
   ),
   elevatedButtonTheme: ElevatedButtonThemeData(
     style: ElevatedButton.styleFrom(
-      backgroundColor: const Color(0xFF15803D), // green-700
+      backgroundColor: AppColors.primaryDarkGreen,
       foregroundColor: Colors.white,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+      textStyle: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        fontFamily: 'SF Pro Text',
       ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      elevation: 2,
     ),
   ),
   cardTheme: CardTheme(
-    color: Colors.white,
-    elevation: 3,
+    color: AppColors.cardColor,
+    elevation: 2,
     shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(20),
     ),
-    shadowColor: Colors.grey.shade300,
+    shadowColor: Colors.black.withOpacity(0.08),
     margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
   ),
 );

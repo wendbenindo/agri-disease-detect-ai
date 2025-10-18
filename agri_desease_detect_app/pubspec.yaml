@@ -61,6 +61,7 @@ dependencies:
   supabase_flutter: ^2.10.1
   connectivity_plus: ^7.0.0
   crypto: ^3.0.3
+  share_plus: ^10.1.4
   # camera: ^0.9.4+5
 
 dev_dependencies:
