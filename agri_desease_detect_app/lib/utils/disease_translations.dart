@@ -11,6 +11,7 @@ class DiseaseTranslations {
     'Sorghum Rust': 'Rouille du sorgho',
     
     // Vous pouvez ajouter d'autres maladies ici
+    'Maize Rust': 'Rouille du maïs',
     'Bacterial Blight': 'Brûlure bactérienne',
     'Gray Leaf Spot': 'Tache grise des feuilles',
     'Northern Corn Leaf Blight': 'Helminthosporiose',
