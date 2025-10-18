@@ -172,41 +172,59 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 ),
               ),
               const SizedBox(width: 12),
-              // Icône MAJ modèle avec badge
+              // Icône MAJ modèle avec badge + état de téléchargement
               ValueListenableBuilder<bool>(
                 valueListenable: _modelUpdateService.isUpdateAvailable,
                 builder: (context, hasUpdate, _) {
-                  return Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.orange.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: IconButton(
-                          icon: const Icon(Icons.system_update_alt_rounded, size: 22),
-                          color: Colors.orange.shade800,
-                          tooltip: 'Vérifier les mises à jour du modèle',
-                          onPressed: _manualCheckForUpdates,
-                          padding: const EdgeInsets.all(8),
-                          constraints: const BoxConstraints(),
-                        ),
-                      ),
-                      if (hasUpdate)
-                        Positioned(
-                          right: -2,
-                          top: -2,
-                          child: Container(
-                            width: 10,
-                            height: 10,
-                            decoration: const BoxDecoration(
-                              color: Colors.red,
-                              shape: BoxShape.circle,
+                  return ValueListenableBuilder<bool>(
+                    valueListenable: _modelUpdateService.isDownloading,
+                    builder: (context, downloading, __) {
+                      return Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: IconButton(
+                              icon: const Icon(Icons.system_update_alt_rounded, size: 22),
+                              color: Colors.orange.shade800,
+                              tooltip: downloading ? 'Téléchargement en cours…' : 'Vérifier les mises à jour du modèle',
+                              onPressed: downloading ? null : _manualCheckForUpdates,
+                              padding: const EdgeInsets.all(8),
+                              constraints: const BoxConstraints(),
                             ),
                           ),
-                        ),
-                    ],
+                          if (hasUpdate && !downloading)
+                            Positioned(
+                              right: -2,
+                              top: -2,
+                              child: Container(
+                                width: 10,
+                                height: 10,
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ),
+                          if (downloading)
+                            Positioned(
+                              right: -4,
+                              top: -4,
+                              child: SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.orange.shade800,
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
                   );
                 },
               ),
@@ -366,6 +384,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   }
 
   Future<void> _manualCheckForUpdates() async {
+    if (_modelUpdateService.isDownloading.value) return;
     final results = await Connectivity().checkConnectivity();
     if (results.contains(ConnectivityResult.none)) {
       if (mounted) {

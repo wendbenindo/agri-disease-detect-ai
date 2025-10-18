@@ -23,7 +23,8 @@ class LocalModel {
   final String name;
   final String path;
   final String version;
-  LocalModel({required this.name, required this.path, required this.version});
+  final String? labelsPath;
+  LocalModel({required this.name, required this.path, required this.version, this.labelsPath});
 }
 
 class ModelUpdateService {
@@ -32,8 +33,9 @@ class ModelUpdateService {
   static const String _currentLabelsPathKey = 'current_model_labels_path';
   static const String _currentPlantTypeKey = 'current_plant_type';
 
-  // Notifier pour l'interface graphique
+  // Notifiers pour l'interface graphique
   final ValueNotifier<bool> isUpdateAvailable = ValueNotifier<bool>(false);
+  final ValueNotifier<bool> isDownloading = ValueNotifier<bool>(false);
   // Stockage des données du dernier modèle pour la boîte de dialogue
   Map<String, dynamic>? _latestModelData;
 
@@ -150,6 +152,7 @@ class ModelUpdateService {
     String? labelsPath;
 
     try {
+      isDownloading.value = true;
       final String modelName = _latestModelData!['model_name'];
       final String labelsName = (_latestModelData!['labels_name'] as String?) ?? _inferLabelsNameFromModel(modelName);
       final String? expectedModelSha = (_latestModelData!['checksum_sha256'] as String?)?.toLowerCase();
@@ -195,6 +198,16 @@ class ModelUpdateService {
       }
       debugPrint("Fichiers sauvegardés: model=$modelPath labels=${labelsBytes != null ? labelsPath : 'N/A'}");
 
+      // Ecrire un fichier metadata pour retrouver la version/labels plus tard
+      final metaPath = '$modelPath.meta.json';
+      final meta = {
+        'version': _latestModelData!['version'],
+        'model_path': modelPath,
+        'labels_path': labelsBytes != null ? labelsPath : null,
+        'created_at': DateTime.now().toIso8601String(),
+      };
+      await File(metaPath).writeAsString(jsonEncode(meta));
+
       // Nettoyage des anciens fichiers si différents
       final prefs = await SharedPreferences.getInstance();
       final oldModelPath = prefs.getString(_currentPathKey);
@@ -226,6 +239,8 @@ class ModelUpdateService {
       }
       debugPrint("Erreur lors du téléchargement ou de l'application du modèle: $e");
       _showSnack(context, 'Échec de la mise à jour du modèle. Veuillez réessayer.');
+    } finally {
+      isDownloading.value = false;
     }
   }
 
@@ -320,10 +335,22 @@ class ModelUpdateService {
     for (final f in files) {
       if (f is File && f.path.endsWith('.tflite')) {
         final name = f.uri.pathSegments.isNotEmpty ? f.uri.pathSegments.last : f.path;
-        // tente d'extraire une version simple depuis le nom (ex: _v1_2 -> 1.2)
-        final versionMatch = RegExp(r'v(\d+)[._](\d+)').firstMatch(name);
-        final version = versionMatch != null ? '${versionMatch.group(1)}.${versionMatch.group(2)}' : 'local';
-        models.add(LocalModel(name: name, path: f.path, version: version));
+        // metadata adjacent
+        final metaFile = File('${f.path}.meta.json');
+        String version = 'local';
+        String? labelsPath;
+        if (await metaFile.exists()) {
+          try {
+            final meta = jsonDecode(await metaFile.readAsString()) as Map<String, dynamic>;
+            version = (meta['version'] as String?) ?? version;
+            labelsPath = (meta['labels_path'] as String?);
+          } catch (_) {}
+        } else {
+          // tente d'extraire une version simple depuis le nom (ex: _v1_2 -> 1.2)
+          final versionMatch = RegExp(r'v(\d+)[._](\d+)').firstMatch(name);
+          version = versionMatch != null ? '${versionMatch.group(1)}.${versionMatch.group(2)}' : version;
+        }
+        models.add(LocalModel(name: name, path: f.path, version: version, labelsPath: labelsPath));
       }
     }
     return models;

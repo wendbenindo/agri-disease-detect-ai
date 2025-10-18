@@ -135,10 +135,10 @@ class _DiagnosticPageState extends State<DiagnosticPage> {
                         subtitle: Text('v${m.version}'),
                         onTap: () async {
                           Navigator.of(context).pop();
-                          await _modelUpdateService.setCurrentModel(path: m.path, version: m.version);
+                          await _modelUpdateService.setCurrentModel(path: m.path, version: m.version, labelsPath: m.labelsPath);
                           if (!mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Modèle sélectionné: ${m.name}')),
+                            SnackBar(content: Text('Modèle sélectionné: ${m.name} (v${m.version})')),
                           );
                         },
                       )),
