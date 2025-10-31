@@ -54,7 +54,7 @@ dependencies:
 
   tflite_flutter: ^0.11.0
   # tflite_flutter_helper: ^0.2.0
-  image: ^3.3.0
+  image: ^4.5.4
   google_fonts: ^6.2.1
   url_launcher: ^6.3.1
   flutter_phone_direct_caller: ^2.2.1
@@ -69,6 +69,7 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^5.0.0
   flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.3.10
 
 
   # The "flutter_lints" package below contains a set of recommended lints to
@@ -129,3 +130,13 @@ flutter_launcher_icons:
   image_path: "assets/images/tiptiga.png"
   adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: "assets/images/tiptiga.png"
+
+# Configuration pour le splash screen natif (icône dans le multitâche)
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: assets/images/tiptiga.png
+  android: true
+  ios: false
+  android_12:
+    image: assets/images/tiptiga.png
+    color: "#FFFFFF"

@@ -106,9 +106,9 @@ class _ImageAnalysisModuleState extends State<ImageAnalysisModule> {
       for (int y = 0; y < 224; y++) {
         for (int x = 0; x < 224; x++) {
           final pixel = resizedImage.getPixel(x, y);
-          input[index++] = img.getRed(pixel) / 255.0;
-          input[index++] = img.getGreen(pixel) / 255.0;
-          input[index++] = img.getBlue(pixel) / 255.0;
+          input[index++] = pixel.r / 255.0;
+          input[index++] = pixel.g / 255.0;
+          input[index++] = pixel.b / 255.0;
         }
       }
 
