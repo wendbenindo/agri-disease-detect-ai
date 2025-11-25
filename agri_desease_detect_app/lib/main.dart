@@ -14,20 +14,16 @@ import 'package:agri_desease_detect_app/pages/diagnosticpage.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  try {
-    // Chargement des variables d'environnement
-    await dotenv.load(fileName: kIsWeb ? "assets/.env" : ".env");
+  // Lancer l'app immédiatement
+  runApp(const TipTigaApp());
 
-    // Initialisations critiques
+  // Faire les initialisations en arrière-plan
+  try {
+    await dotenv.load(fileName: kIsWeb ? "assets/.env" : ".env");
     await initSupabase();
     await _handleLocationPermission();
-
-    // Lancement de l'application principale si tout a réussi
-    runApp(const TipTigaApp());
   } catch (e) {
-    debugPrint("Erreur critique au démarrage : $e");
-    // En cas d'erreur, on lance une application d'erreur
-    runApp(ErrorApp(error: e.toString()));
+    debugPrint("Erreur lors de l'initialisation : $e");
   }
 }
 

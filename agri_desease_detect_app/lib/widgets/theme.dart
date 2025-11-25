@@ -89,7 +89,7 @@ final ThemeData tipTigaTheme = ThemeData(
       elevation: 2,
     ),
   ),
-  cardTheme: CardTheme(
+  cardTheme: CardThemeData(
     color: AppColors.cardColor,
     elevation: 2,
     shape: RoundedRectangleBorder(
