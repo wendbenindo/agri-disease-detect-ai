@@ -9,6 +9,7 @@ import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:agri_desease_detect_app/services/model_update_service.dart';
 import 'package:agri_desease_detect_app/widgets/theme.dart';
 import 'package:agri_desease_detect_app/utils/disease_translations.dart';
+import 'package:agri_desease_detect_app/utils/model_config.dart';
 
 class ImageAnalysisModule extends StatefulWidget {
   final File image;
@@ -132,7 +133,7 @@ class _ImageAnalysisModuleState extends State<ImageAnalysisModule> {
         indexed.add(MapEntry(i, result[i]));
       }
       indexed.sort((a, b) => b.value.compareTo(a.value));
-      final top3 = indexed.take(3).toList();
+      final top3 = indexed.take(ModelConfig.TOP_K_PREDICTIONS).toList();
 
       _topPredictions = top3.map((e) {
         String label = (_labels.isNotEmpty && e.key < _labels.length) ? _labels[e.key] : 'Classe ${e.key}';
@@ -141,9 +142,16 @@ class _ImageAnalysisModuleState extends State<ImageAnalysisModule> {
         return MapEntry(translatedLabel, e.value);
       }).toList();
 
-      String predictedClass = (_labels.isNotEmpty && predictedIndex < _labels.length) ? _labels[predictedIndex] : 'Classe $predictedIndex';
-      // Traduction en français
-      predictedClass = DiseaseTranslations.translate(predictedClass);
+      String predictedClass;
+      
+      // 🔥 Si confiance trop faible, rejeter la prédiction
+      if (maxProb < ModelConfig.CONFIDENCE_THRESHOLD) {
+        predictedClass = ModelConfig.getRejectionMessage(maxProb);
+      } else {
+        predictedClass = (_labels.isNotEmpty && predictedIndex < _labels.length) ? _labels[predictedIndex] : 'Classe $predictedIndex';
+        // Traduction en français
+        predictedClass = DiseaseTranslations.translate(predictedClass);
+      }
 
       if (mounted) {
         setState(() {
@@ -238,8 +246,24 @@ class _ImageAnalysisModuleState extends State<ImageAnalysisModule> {
   }
 
   Widget _buildResultCard() {
-    final String status = _confidence >= 0.8 ? 'Détection confirmée' : _confidence >= 0.5 ? 'À surveiller' : 'Incertain';
-    final Color statusColor = _confidence >= 0.8 ? AppColors.successGreen : _confidence >= 0.5 ? AppColors.warningOrange : AppColors.errorRed;
+    // 🔥 Détection des cas rejetés
+    final bool isRejected = _predictedClass.contains('non reconnue') || _predictedClass.contains('Incertain');
+    
+    final String status = isRejected 
+        ? 'Non reconnu' 
+        : _confidence >= 0.8 
+            ? 'Détection confirmée' 
+            : _confidence >= 0.5 
+                ? 'À surveiller' 
+                : 'Incertain';
+    
+    final Color statusColor = isRejected
+        ? AppColors.textSecondary
+        : _confidence >= 0.8 
+            ? AppColors.successGreen 
+            : _confidence >= 0.5 
+                ? AppColors.warningOrange 
+                : AppColors.errorRed;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -415,6 +439,48 @@ class _ImageAnalysisModuleState extends State<ImageAnalysisModule> {
                   ),
                 ),
               ],
+            ),
+          ],
+          // 🔥 Afficher des conseils si image rejetée
+          if (isRejected) ...[
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.warningOrange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.warningOrange.withOpacity(0.3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.info_outline_rounded, color: AppColors.warningOrange, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Conseils pour une meilleure photo',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.warningOrange,
+                          fontFamily: 'SF Pro Text',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    ModelConfig.PHOTO_TIPS,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textPrimary,
+                      height: 1.5,
+                      fontFamily: 'SF Pro Text',
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ],
