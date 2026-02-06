@@ -1,4 +1,4 @@
-package com.example.agri_desease_detect_app
+package com.agritech.disease_detector
 
 import io.flutter.embedding.android.FlutterActivity
 
