@@ -69,6 +69,28 @@ class _SplashScreenState extends State<SplashScreen> {
             color: Colors.black.withOpacity(0.2),
           ),
 
+          // Bouton "Passer" discret en haut à droite
+          Positioned(
+            top: 50,
+            right: 20,
+            child: TextButton(
+              onPressed: _navigateToHome,
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.white.withOpacity(0.9),
+                backgroundColor: Colors.black.withOpacity(0.3),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              ),
+              child: const Row(
+                children: [
+                  Text('Passer', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                  SizedBox(width: 4),
+                  Icon(Icons.arrow_forward_ios_rounded, size: 12),
+                ],
+              ),
+            ),
+          ),
+
           // Card blanche en bas avec logo + texte
           Align(
             alignment: Alignment.bottomCenter,
@@ -126,5 +148,13 @@ class _SplashScreenState extends State<SplashScreen> {
         ],
       ),
     );
+  }
+
+  void _navigateToHome() {
+    if (mounted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const NavigationController()),
+      );
+    }
   }
 }
