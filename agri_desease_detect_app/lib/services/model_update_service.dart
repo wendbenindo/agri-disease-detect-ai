@@ -43,9 +43,28 @@ class ModelUpdateService {
   /// Récupère les informations du modèle actuellement utilisé.
   /// FORCE L'UTILISATION DU MODÈLE LOCAL (ASSETS) pour cette version.
   Future<ModelInfo> getCurrentModelInfo() async {
-    // On ignore temporairement les préférences pour garantir l'usage du nouveau modèle V3
+    const String bundledVersion = '3.0.0'; // Version minimale saine (celle des assets)
+
+    final prefs = await SharedPreferences.getInstance();
+    final String? cachedVersion = prefs.getString(_currentVersionKey);
+    final String? path = prefs.getString(_currentPathKey);
+    final String? labelsPath = prefs.getString(_currentLabelsPathKey);
+
+    // Si on a un modèle en cache, on vérifie sa version
+    if (path != null && await File(path).exists() && cachedVersion != null) {
+      // Si la version en cache est plus récente que celle embarquée, on l'utilise
+      if (_compareSemver(cachedVersion, bundledVersion) > 0) {
+        return ModelInfo(
+          version: cachedVersion,
+          path: path,
+          labelsPath: labelsPath ?? 'assets/model/plant_disease_model.labels.json',
+        );
+      }
+    }
+
+    // Sinon (ou si le cache est vieux/buggé), on force le modèle Assets V3
     return ModelInfo(
-      version: '3.0.0', // Nouvelle version
+      version: bundledVersion,
       path: 'assets/model/plant_disease_model.tflite',
       labelsPath: 'assets/model/plant_disease_model.labels.json',
     );
