@@ -17,9 +17,9 @@ class ModelConfig {
   /// Messages d'erreur personnalisés
   static String getRejectionMessage(double confidence) {
     if (confidence < VERY_LOW_THRESHOLD) {
-      return 'Image non reconnue - Veuillez photographier une feuille de sorgho';
+      return 'Image non reconnue. Merci de prendre une plante en photo.';
     } else if (confidence < CONFIDENCE_THRESHOLD) {
-      return 'Incertain - Confiance trop faible (${(confidence * 100).toStringAsFixed(0)}%)';
+      return 'Image floue ou non reconnue. Veuillez réessayer avec une plante bien visible.';
     }
     return 'Image non reconnue';
   }

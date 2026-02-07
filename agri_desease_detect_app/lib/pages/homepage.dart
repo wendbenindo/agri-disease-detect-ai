@@ -850,7 +850,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Impossible de charger la météo. Vérifiez votre connexion internet.',
+                  'Impossible de charger la météo. Vérifiez votre connexion internet et activez la localisation.',
                   style: TextStyle(
                     color: Colors.red.shade700,
                     fontWeight: FontWeight.w600,

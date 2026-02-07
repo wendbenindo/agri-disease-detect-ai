@@ -67,18 +67,39 @@ class _ImageAnalysisModuleState extends State<ImageAnalysisModule> {
   }
 
   Future<void> _startAnalysisProcess() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
-      _currentStep = 0;
+      _currentStep = 0; // Etape 0: Image
     });
+    
     try {
-      await _loadLabels();
-      await Future.delayed(const Duration(milliseconds: 500));
+      // Simulation temps de "lecture" de l'image
+      await Future.delayed(const Duration(milliseconds: 600));
+      
+      // Etape 1: Préparation (Chargement labels & modèle)
       if (mounted) setState(() => _currentStep = 1);
-      await Future.delayed(const Duration(milliseconds: 500));
+      await _loadLabels();
+      _interpreter = await _loadInterpreter();
+      
+      // Pause visuelle avant traitement lourd
+      await Future.delayed(const Duration(milliseconds: 600)); 
+
+      // Etape 2: Analyse (Traitement image + Inférence)
+      if (mounted) setState(() => _currentStep = 2);
+      
+      // Laisser le temps à l'UI de se mettre à jour avant de figer
+      await Future.delayed(const Duration(milliseconds: 100)); 
+      
       await _analyzeImage();
+      
+      // Pause finale pour bien voir "Analyse terminée"
+      await Future.delayed(const Duration(milliseconds: 400));
+      
+      // Etape 3: Résultat
       if (mounted) setState(() => _currentStep = 3);
+      
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -92,13 +113,15 @@ class _ImageAnalysisModuleState extends State<ImageAnalysisModule> {
   Future<void> _analyzeImage() async {
     final startTime = DateTime.now();
     try {
-      _interpreter = await _loadInterpreter();
+      // Note: _interpreter est déjà chargé dans _startAnalysisProcess
+      if (_interpreter == null) _interpreter = await _loadInterpreter();
 
       final imageBytes = await widget.image.readAsBytes();
       img.Image? oriImage = img.decodeImage(imageBytes);
       if (oriImage == null) throw Exception("Image illisible");
-
-      if (mounted) setState(() => _currentStep = 2);
+      
+      // Petite pause pour ne pas tout bloquer d'un coup
+      await Future.delayed(Duration.zero);
 
       img.Image resizedImage = img.copyResize(oriImage, width: 224, height: 224);
       Float32List input = Float32List(224 * 224 * 3);
@@ -458,13 +481,17 @@ class _ImageAnalysisModuleState extends State<ImageAnalysisModule> {
                     children: [
                       Icon(Icons.info_outline_rounded, color: AppColors.warningOrange, size: 20),
                       const SizedBox(width: 8),
-                      Text(
-                        'Conseils pour une meilleure photo',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.warningOrange,
-                          fontFamily: 'SF Pro Text',
+                      // Utilisation de Expanded pour éviter l'overflow
+                      Expanded(
+                        child: Text(
+                          'Conseils pour une meilleure photo',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.warningOrange,
+                            fontFamily: 'SF Pro Text',
+                          ),
+                          overflow: TextOverflow.ellipsis, // Coupe proprement si trop long
                         ),
                       ),
                     ],

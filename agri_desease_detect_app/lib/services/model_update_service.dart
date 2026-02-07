@@ -40,20 +40,15 @@ class ModelUpdateService {
   Map<String, dynamic>? _latestModelData;
 
   /// Récupère les informations du modèle actuellement utilisé depuis SharedPreferences.
+  /// Récupère les informations du modèle actuellement utilisé.
+  /// FORCE L'UTILISATION DU MODÈLE LOCAL (ASSETS) pour cette version.
   Future<ModelInfo> getCurrentModelInfo() async {
-    final prefs = await SharedPreferences.getInstance();
-    final version = prefs.getString(_currentVersionKey);
-    final path = prefs.getString(_currentPathKey);
-    final labelsPath = prefs.getString(_currentLabelsPathKey);
-
-    if (version == null || path == null || labelsPath == null) {
-      return ModelInfo(
-        version: '1.0',
-        path: 'assets/model/plant_disease_model.tflite',
-        labelsPath: 'assets/model/labels.json',
-      );
-    }
-    return ModelInfo(version: version, path: path, labelsPath: labelsPath);
+    // On ignore temporairement les préférences pour garantir l'usage du nouveau modèle V3
+    return ModelInfo(
+      version: '3.0.0', // Nouvelle version
+      path: 'assets/model/plant_disease_model.tflite',
+      labelsPath: 'assets/model/plant_disease_model.labels.json',
+    );
   }
 
   /// Interroge Supabase pour obtenir les informations du dernier modèle actif.

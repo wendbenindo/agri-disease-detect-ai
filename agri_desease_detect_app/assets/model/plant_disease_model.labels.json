@@ -1,8 +1,9 @@
 [
-  "Healthy",
-  "Maize Leaf Spot", 
-  "Maize Streak",
-  "Mil Sorgho",
-  "Sorghum Blight",
-  "Sorghum Rust"
+  "Hors_Sujet",
+  "Mais_Brulure",
+  "Mais_Cercosporiose",
+  "Mais_Rouille",
+  "Mais_Sain",
+  "Sorgho_Anthracnose",
+  "Sorgho_Rouille"
 ]

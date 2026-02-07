@@ -11,6 +11,10 @@ import numpy as np
 import tensorflow as tf
 from pathlib import Path
 import logging
+
+# Force UTF-8 output for Windows console
+if sys.platform == 'win32':
+    sys.stdout.reconfigure(encoding='utf-8')
 from datetime import datetime
 import matplotlib.pyplot as plt
 from PIL import Image
@@ -248,6 +252,32 @@ class TFLiteConverter:
             logging.error(f"❌ Erreur conversion int8: {e}")
             return None
     
+    def _convert_compatible(self):
+        """Convertit en format TFLite brut (sans optimisation) pour compatibilité maximale"""
+        try:
+            logging.info("⏳ Conversion compatible (Raw Float32) en cours...")
+            converter = tf.lite.TFLiteConverter.from_keras_model(self.model)
+            # PAS d'optimisation ici pour éviter de monter en version d'opérateurs
+            # converter.optimizations = [tf.lite.Optimize.DEFAULT] 
+            
+            tflite_model = converter.convert()
+
+            path = os.path.join(self.output_dir, "plant_disease_model_compatible.tflite")
+            with open(path, "wb") as f:
+                f.write(tflite_model)
+
+            size_mb = os.path.getsize(path) / (1024 * 1024)
+            logging.info(f"✅ Conversion compatible terminée: {size_mb:.2f} MB")
+            
+            return {
+                "path": path,
+                "size_mb": size_mb,
+                "type": "Compatible (Float32)"
+            }
+        except Exception as e:
+            logging.error(f"❌ Erreur conversion compatible: {e}")
+            return None
+
     def _convert_float16_quantized(self):
         """Conversion avec quantification float16"""
         try:
@@ -440,6 +470,7 @@ class TFLiteConverter:
             # Liste des conversions
             conversions = [
                 ("Standard", self._convert_standard),
+                ("Compatible", self._convert_compatible), # Ajout du mode compatible
                 ("Dynamic Range", self._convert_dynamic_range_quantized),
                 ("Float16", self._convert_float16_quantized),
                 ("Integer Int8", self._convert_full_integer_quantized)
