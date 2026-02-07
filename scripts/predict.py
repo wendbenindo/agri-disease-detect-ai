@@ -8,6 +8,11 @@ import json
 import argparse
 import numpy as np
 import tensorflow as tf
+
+# Force UTF-8 output for Windows console
+if sys.platform == 'win32':
+    sys.stdout.reconfigure(encoding='utf-8')
+
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.applications.imagenet_utils import preprocess_input
