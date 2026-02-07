@@ -29,18 +29,18 @@ class CommunityPage extends StatelessWidget {
               const SizedBox(height: 16),
               const ListTile(
                 leading: Icon(Icons.email, color: Color(0xFF15803D)),
-                title: Text('Email : assistance@agriapp.com'),
+                title: Text('Email : kalanelogitiel@gmail.com'),
               ),
               ListTile(
                 leading: const Icon(Icons.phone, color: Color(0xFF15803D)),
-                title: const Text('Téléphone : +226 70 00 00 00'),
+                title: const Text('Téléphone : +226 68 11 61 91'),
                 onTap: () async {
-                  await FlutterPhoneDirectCaller.callNumber("+22657989467");
+                  await FlutterPhoneDirectCaller.callNumber("+22668116191");
                 },
               ),
               const ListTile(
                 leading: Icon(Icons.message, color: Color(0xFF15803D)),
-                title: Text('WhatsApp : +226 70 00 00 00'),
+                title: Text('WhatsApp : +226 57 98 94 67'),
               ),
             ],
           ),
