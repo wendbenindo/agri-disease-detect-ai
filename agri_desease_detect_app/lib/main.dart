@@ -10,6 +10,7 @@ import 'package:agri_desease_detect_app/widgets/theme.dart';
 import 'package:agri_desease_detect_app/widgets/splashscreen.dart';
 import 'package:agri_desease_detect_app/pages/homepage.dart';
 import 'package:agri_desease_detect_app/pages/diagnosticpage.dart';
+import 'package:agri_desease_detect_app/pages/marketplace/marketplace_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -112,7 +113,8 @@ class _NavigationControllerState extends State<NavigationController> {
   final List<Widget> _pages = const [
     HomePage(),
     DiagnosticPage(),
-    CommunityPage(), // tu peux la réactiver plus tard
+    MarketplacePage(),
+    CommunityPage(),
   ];
 
   void _onItemTapped(int index) {
@@ -139,6 +141,10 @@ class _NavigationControllerState extends State<NavigationController> {
           BottomNavigationBarItem(
             icon: Icon(Icons.health_and_safety),
             label: 'Diagnostic',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.shopping_bag),
+            label: 'Marketplace',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.groups),

@@ -1,0 +1,114 @@
+PHASE 1 — Consolider le cœur (0–3 mois)
+
+Objectif : rendre la détection solide et utile.
+
+1. Amélioration du modèle
+Collecter vraies photos utilisateurs
+Identifier erreurs fréquentes
+Ajouter augmentation de données terrain
+Quantization pour performance mobile
+Ajouter confiance (%) dans la prédiction
+
+2. Passer de “nom maladie” → “solution”
+
+Pour chaque maladie :
+Description claire
+Gravité
+Traitement recommandé
+Dosage
+Prévention
+Valider avec un agronome local.
+
+3. Système de feedback
+Bouton : “Résultat correct ? Oui / Non”
+Upload pour correction
+Stockage pour réentraînement
+
+
+PHASE 2 — Orientation vers l’achat (3–6 mois)
+Objectif : connecter diagnostic → action.
+
+🔹 4. Mini marketplace (version simple)
+Pas Amazon. Juste :
+Liste de produits recommandés
+Contact vendeur local (WhatsApp / appel)
+Pas de paiement intégré au début.
+🔹 5. Partenariats locaux
+Commencer petit :
+3–5 vendeurs d’intrants
+
+Commission simple (5–10%)
+Contrat clair.
+
+🔹 6. Géolocalisation simple
+Montrer vendeur le plus proche
+Statistiques par zone
+
+👉 À la fin de phase 2 :
+Tu génères potentiellement tes premiers revenus.
+
+🌍 PHASE 3 — Structuration plateforme (6–12 mois)
+Objectif : passer d’app → écosystème.
+
+🔹 7. Profil agriculteur
+
+Type culture
+Surface
+Historique maladies
+Saison en cours
+
+🔹 8. Dashboard vendeur
+
+Interface pour :
+Voir demandes
+Voir statistiques
+Gérer produits
+
+🔹 9. Données & analytics
+
+Carte maladies par région
+Fréquence saisonnière
+Ces données intéressent :
+ONG
+Ministère agriculture
+Coopératives
+
+PHASE 4 — Expansion (12–18 mois)
+Objectif : scaler.
+
+🔹 10. Paiement intégré
+
+Mobile Money
+Commission automatique
+
+🔹 11. Crédit agricole / microfinancement
+Partenariat banque / fintech.
+
+🔹 12. Matériel agricole lourd
+Tracteurs, irrigation, etc.
+Seulement si base utilisateurs solide.
+
+🧠 En parallèle (important)
+Branding
+
+Tu dois devenir :
+La référence agricole digitale locale.
+Confiance
+Partenariat agronome officiel
+Université locale
+Ministère si possible
+
+🎯 Priorité absolue
+
+Avant marketplace :
+Augmenter nombre d’utilisateurs actifs.
+Sans trafic :
+Pas de business.
+
+📊 Indicateurs clés à suivre
+
+Utilisateurs actifs mensuels
+Taux de prédiction correcte
+Nombre de demandes produit
+Conversion achat
+Revenu mensuel
