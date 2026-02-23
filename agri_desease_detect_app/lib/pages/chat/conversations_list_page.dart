@@ -100,9 +100,17 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
   }
 
   Widget _buildConversationTile(Conversation conversation) {
+    final currentUserId = _authService.currentUserId;
+    
+    // Déterminer qui est l'autre personne (vendor ou buyer)
+    final isUserBuyer = conversation.buyerId == currentUserId;
+    final otherPersonId = isUserBuyer ? conversation.vendorId : conversation.buyerId;
+    final otherPersonName = isUserBuyer 
+        ? (conversation.vendorName ?? 'Vendeur') 
+        : 'Acheteur';
+    
     final productName = conversation.productName ?? 'Produit';
-    final vendorName = conversation.vendorName ?? 'Vendeur';
-    final lastMessage = conversation.lastMessage ?? 'Aucun message';
+    final lastMessage = conversation.lastMessage ?? '';
     final unreadCount = conversation.unreadCount;
     
     // Formater le temps du dernier message
@@ -125,12 +133,14 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: Colors.green.shade700,
-        backgroundImage: conversation.productPhotoUrl != null
-            ? NetworkImage(conversation.productPhotoUrl!)
-            : null,
-        child: conversation.productPhotoUrl == null
-            ? const Icon(Icons.shopping_bag, color: Colors.white)
-            : null,
+        child: Text(
+          otherPersonName[0].toUpperCase(),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
       ),
       title: Row(
         children: [
@@ -139,6 +149,7 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
               productName,
               style: TextStyle(
                 fontWeight: unreadCount > 0 ? FontWeight.bold : FontWeight.w600,
+                fontSize: 16,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -158,19 +169,21 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            vendorName,
+            otherPersonName,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 13,
               color: Colors.grey.shade600,
+              fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 2),
           Text(
-            lastMessage,
+            lastMessage.isEmpty ? 'Aucun message' : lastMessage,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontWeight: unreadCount > 0 ? FontWeight.w600 : FontWeight.normal,
+              color: lastMessage.isEmpty ? Colors.grey.shade400 : null,
             ),
           ),
         ],

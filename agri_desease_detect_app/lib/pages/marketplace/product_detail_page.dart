@@ -49,20 +49,62 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   Future<void> _openChat() async {
+    print('🎯 _openChat appelé pour produit: ${widget.product.name}');
+    print('   - productId: ${widget.product.id}');
+    print('   - vendorId: ${widget.product.vendorId}');
+    
+    // Vérifier que le vendorId existe
+    if (widget.product.vendorId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('❌ Vendeur introuvable'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+    
+    print('✅ vendorId OK: ${widget.product.vendorId}');
+    
     // Vérifier si l'utilisateur est connecté
+    print('🔍 Vérification authentification...');
+    print('   - isAuthenticated: ${_authService.isAuthenticated}');
+    print('   - currentUserId: ${_authService.currentUserId}');
+    
     if (!_authService.isAuthenticated) {
       final result = await Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const AuthPage()),
       );
       
-      // Si l'utilisateur n'a pas réussi à se connecter, arrêter
       if (result != true) return;
+    }
+
+    final userId = _authService.currentUserId!;
+    
+    // ❌ BLOQUER si l'utilisateur essaie de se contacter lui-même
+    if (userId == widget.product.vendorId) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('❌ Vous ne pouvez pas vous contacter vous-même'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      return;
     }
 
     // Créer ou récupérer la conversation
     try {
-      final userId = _authService.currentUserId!;
+      print('🚀 Tentative création conversation...');
+      print('   - userId: $userId');
+      print('   - productId: ${widget.product.id}');
+      print('   - vendorId: ${widget.product.vendorId}');
+      
       final conversation = await _chatService.getOrCreateConversation(
         productId: widget.product.id,
         vendorId: widget.product.vendorId!,
@@ -70,6 +112,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         productName: widget.product.name,
         productPhotoUrl: widget.product.photoUrl,
       );
+
+      print('✅ Conversation créée/récupérée: ${conversation.id}');
+      print('📱 Navigation vers ChatPage');
 
       if (mounted) {
         Navigator.push(
@@ -79,10 +124,16 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           ),
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ ERREUR dans _openChat: $e');
+      print('📍 StackTrace: $stackTrace');
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e')),
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -91,388 +142,337 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Détails du produit'),
-        actions: [
-          IconButton(
-            icon: Icon(
-              _isFavorite ? Icons.favorite : Icons.favorite_border,
-              color: _isFavorite ? Colors.red : null,
-            ),
-            onPressed: () {
-              setState(() => _isFavorite = !_isFavorite);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    _isFavorite 
-                        ? '❤️ Ajouté aux favoris' 
-                        : 'Retiré des favoris',
-                  ),
-                  duration: const Duration(seconds: 1),
-                ),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.share),
-            onPressed: () {
-              // TODO: Partager le produit
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Partage en cours...')),
-              );
-            },
-          ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Image du produit avec hero animation
-                Hero(
-                  tag: 'product-${widget.product.id}',
-                  child: Container(
-                    width: double.infinity,
-                    height: 300,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: widget.product.photoUrl != null
-                        ? Image.network(
-                            widget.product.photoUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                _buildPlaceholderImage(),
-                          )
-                        : _buildPlaceholderImage(),
-                  ),
-                ),
-
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Nom et prix
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              widget.product.name,
-                              style: const TextStyle(
-                                fontSize: 26,
-                                fontWeight: FontWeight.bold,
-                                height: 1.2,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      
-                      // Prix avec badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.green.shade700,
-                              Colors.green.shade900,
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.green.shade700.withOpacity(0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.local_offer,
-                              color: Colors.white,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              _formatPrice(widget.product.price),
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-                      const Divider(),
-                      const SizedBox(height: 16),
-
-                      // Description
-                      _buildSection(
-                        icon: Icons.description,
-                        title: 'Description',
-                        child: Text(
-                          widget.product.description,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            height: 1.6,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ),
-
-                      // Dosage (si disponible)
-                      if (widget.product.dosage != null) ...[
-                        const SizedBox(height: 24),
-                        _buildSection(
-                          icon: Icons.science,
-                          title: 'Dosage recommandé',
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.shade50,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.blue.shade200),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.water_drop, color: Colors.blue.shade700),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    widget.product.dosage!,
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      color: Colors.blue.shade900,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-
-                      // Instructions (si disponibles)
-                      if (widget.product.instructions != null) ...[
-                        const SizedBox(height: 24),
-                        _buildSection(
-                          icon: Icons.list_alt,
-                          title: 'Mode d\'emploi',
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.shade50,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.orange.shade200),
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Icon(Icons.info_outline, color: Colors.orange.shade700),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    widget.product.instructions!,
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      height: 1.6,
-                                      color: Colors.orange.shade900,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-
-                      // Informations du vendeur
-                      if (_vendor != null) ...[
-                        const SizedBox(height: 24),
-                        _buildSection(
-                          icon: Icons.store,
-                          title: 'Vendeur',
-                          child: Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  Colors.grey.shade50,
-                                  Colors.grey.shade100,
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: Colors.grey.shade200),
-                            ),
-                            child: Column(
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: Colors.green.shade700,
-                                        shape: BoxShape.circle,
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.green.shade700.withOpacity(0.3),
-                                            blurRadius: 8,
-                                            offset: const Offset(0, 4),
-                                          ),
-                                        ],
-                                      ),
-                                      child: const Icon(
-                                        Icons.store,
-                                        color: Colors.white,
-                                        size: 28,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            _vendor!.name,
-                                            style: const TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Row(
-                                            children: [
-                                              Icon(
-                                                Icons.location_on,
-                                                size: 16,
-                                                color: Colors.grey.shade600,
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                '${_vendor!.city}, ${_vendor!.region}',
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  color: Colors.grey.shade600,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ] else if (_isLoadingVendor)
-                        const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(20),
-                            child: CircularProgressIndicator(),
-                          ),
-                        ),
-
-                      const SizedBox(height: 100), // Espace pour le bouton flottant
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          // Bouton flottant de contact
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              padding: const EdgeInsets.all(16),
+      backgroundColor: Colors.white,
+      body: CustomScrollView(
+        slivers: [
+          // AppBar avec image en arrière-plan
+          SliverAppBar(
+            expandedHeight: 300,
+            pinned: true,
+            backgroundColor: Colors.white,
+            elevation: 0,
+            leading: Container(
+              margin: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: Colors.white,
+                shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, -5),
+                    blurRadius: 8,
                   ),
                 ],
               ),
-              child: SafeArea(
-                child: ElevatedButton.icon(
-                  onPressed: _openChat,
-                  icon: const Icon(Icons.chat, size: 24),
-                  label: const Text(
-                    'Contacter le vendeur',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green.shade700,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+              child: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.black),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+            actions: [
+              Container(
+                margin: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
                     ),
-                    elevation: 4,
+                  ],
+                ),
+                child: IconButton(
+                  icon: Icon(
+                    _isFavorite ? Icons.favorite : Icons.favorite_border,
+                    color: _isFavorite ? Colors.red : Colors.black,
                   ),
+                  onPressed: () {
+                    setState(() => _isFavorite = !_isFavorite);
+                  },
+                ),
+              ),
+              Container(
+                margin: const EdgeInsets.only(right: 8, top: 8, bottom: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.share_outlined, color: Colors.black),
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Partage en cours...')),
+                    );
+                  },
+                ),
+              ),
+            ],
+            flexibleSpace: FlexibleSpaceBar(
+              background: Hero(
+                tag: 'product-${widget.product.id}',
+                child: Container(
+                  color: Colors.grey.shade50,
+                  child: widget.product.photoUrl != null
+                      ? Image.network(
+                          widget.product.photoUrl!,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) =>
+                              _buildPlaceholderImage(),
+                        )
+                      : _buildPlaceholderImage(),
                 ),
               ),
             ),
           ),
+
+          // Contenu
+          SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Nom et prix en étiquette
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.product.name,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          height: 1.3,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      // Prix en étiquette
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          _formatPrice(widget.product.price),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Description
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                  child: Text(
+                    widget.product.description,
+                    style: TextStyle(
+                      fontSize: 14,
+                      height: 1.6,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                ),
+
+                // Dosage (si disponible ET si ce n'est pas vide)
+                if (widget.product.dosage != null && 
+                    widget.product.dosage!.trim().isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.science_outlined, 
+                              size: 18, 
+                              color: Colors.grey.shade600,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Dosage recommandé',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey.shade800,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          widget.product.dosage!,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey.shade700,
+                            height: 1.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                // Instructions (si disponibles ET si ce n'est pas vide)
+                if (widget.product.instructions != null && 
+                    widget.product.instructions!.trim().isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.list_alt_outlined, 
+                              size: 18, 
+                              color: Colors.grey.shade600,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Mode d\'emploi',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey.shade800,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          widget.product.instructions!,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey.shade700,
+                            height: 1.6,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                // Informations du vendeur
+                if (_vendor != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Vendeur',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade800,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: Colors.green.shade50,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.store_outlined,
+                                color: Colors.green,
+                                size: 22,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _vendor!.name,
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    '${_vendor!.city}, ${_vendor!.region}',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  )
+                else if (_isLoadingVendor)
+                  const Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+
+                const SizedBox(height: 90),
+              ],
+            ),
+          ),
         ],
       ),
-    );
-  }
-
-  Widget _buildSection({
-    required IconData icon,
-    required String title,
-    required Widget child,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, color: Colors.green.shade700, size: 24),
-            const SizedBox(width: 8),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+      
+      // Bouton flottant
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -5),
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        child,
-      ],
+        child: SafeArea(
+          child: SizedBox(
+            height: 48,
+            child: ElevatedButton(
+              onPressed: _openChat,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                elevation: 0,
+              ),
+              child: const Text(
+                'Contacter le vendeur',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -480,8 +480,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return Center(
       child: Icon(
         Icons.shopping_bag_outlined,
-        size: 100,
-        color: Colors.grey.shade400,
+        size: 80,
+        color: Colors.grey.shade300,
       ),
     );
   }

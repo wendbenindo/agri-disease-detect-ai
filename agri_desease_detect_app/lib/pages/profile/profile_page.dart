@@ -74,24 +74,50 @@ class _ProfilePageState extends State<ProfilePage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            Icon(Icons.logout, color: Colors.red.shade700),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(Icons.logout, color: Colors.red.shade700, size: 24),
+            ),
             const SizedBox(width: 12),
-            const Text('Déconnexion'),
+            const Text(
+              'Déconnexion',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
           ],
         ),
-        content: const Text('Voulez-vous vraiment vous déconnecter?'),
+        content: const Text(
+          'Voulez-vous vraiment vous déconnecter?',
+          style: TextStyle(fontSize: 15),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annuler'),
+            child: Text(
+              'Annuler',
+              style: TextStyle(
+                color: Colors.grey.shade700,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              elevation: 0,
             ),
-            child: const Text('Déconnexion'),
+            child: const Text(
+              'Déconnexion',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),
@@ -101,9 +127,19 @@ class _ProfilePageState extends State<ProfilePage> {
       await _authService.signOut();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Déconnexion réussie'),
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 12),
+                Text('Déconnexion réussie'),
+              ],
+            ),
             backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
         setState(() {});
@@ -118,8 +154,19 @@ class _ProfilePageState extends State<ProfilePage> {
     final userPhone = _authService.currentUserPhone ?? '';
 
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Profil'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(
+          'Profil',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: isAuthenticated
           ? SingleChildScrollView(
@@ -133,78 +180,72 @@ class _ProfilePageState extends State<ProfilePage> {
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          Colors.green.shade700,
-                          Colors.green.shade900,
+                          Colors.green,
+                          Colors.green.shade600,
                         ],
                       ),
                     ),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 32),
-                        
-                        // Avatar (taille réduite)
-                        Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 3),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
-                                blurRadius: 15,
-                                offset: const Offset(0, 8),
+                    child: SafeArea(
+                      bottom: false,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 60, 24, 40),
+                        child: Column(
+                          children: [
+                            // Avatar plus petit
+                            Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 3),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.15),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                          child: CircleAvatar(
-                            radius: 45,
-                            backgroundColor: Colors.white,
-                            child: Text(
-                              userName[0].toUpperCase(),
-                              style: TextStyle(
-                                fontSize: 36,
+                              child: CircleAvatar(
+                                radius: 42,
+                                backgroundColor: Colors.white,
+                                child: Text(
+                                  userName[0].toUpperCase(),
+                                  style: const TextStyle(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            
+                            const SizedBox(height: 16),
+                            
+                            // Nom
+                            Text(
+                              userName,
+                              style: const TextStyle(
+                                fontSize: 22,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.green.shade700,
+                                color: Colors.white,
+                                letterSpacing: 0.5,
                               ),
                             ),
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 16),
-                        
-                        // Nom
-                        Text(
-                          userName,
-                          style: const TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 8),
-                        
-                        // Téléphone (sans icône)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            userPhone,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              color: Colors.white,
-                              fontWeight: FontWeight.w500,
+                            
+                            const SizedBox(height: 8),
+                            
+                            // Téléphone sans icône
+                            Text(
+                              userPhone,
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: Colors.white.withOpacity(0.95),
+                                fontWeight: FontWeight.w400,
+                                letterSpacing: 0.3,
+                              ),
                             ),
-                          ),
+                          ],
                         ),
-                        
-                        const SizedBox(height: 32),
-                      ],
+                      ),
                     ),
                   ),
                   
@@ -281,7 +322,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     const SizedBox(height: 24),
                   ],
                   
-                  // Statistiques
+                  // Statistiques avec meilleur design
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Row(
@@ -432,18 +473,38 @@ class _ProfilePageState extends State<ProfilePage> {
                   // Bouton Déconnexion
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: _handleSignOut,
-                        icon: const Icon(Icons.logout),
-                        label: const Text('Déconnexion'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.red.withOpacity(0.25),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _handleSignOut,
+                          icon: const Icon(Icons.logout, size: 20),
+                          label: const Text(
+                            'Déconnexion',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            elevation: 0,
                           ),
                         ),
                       ),
@@ -456,27 +517,27 @@ class _ProfilePageState extends State<ProfilePage> {
             )
           : Center(
               child: Padding(
-                padding: const EdgeInsets.all(24.0),
+                padding: const EdgeInsets.all(32.0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(32),
+                      padding: const EdgeInsets.all(40),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
+                        color: Colors.green.shade50,
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
                         Icons.person_outline,
                         size: 80,
-                        color: Colors.grey.shade400,
+                        color: Colors.green.shade300,
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 32),
                     Text(
                       'Non connecté',
                       style: TextStyle(
-                        fontSize: 24,
+                        fontSize: 26,
                         fontWeight: FontWeight.bold,
                         color: Colors.grey.shade800,
                       ),
@@ -486,30 +547,50 @@ class _ProfilePageState extends State<ProfilePage> {
                       'Connectez-vous pour accéder à votre profil et profiter de toutes les fonctionnalités',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 15,
                         color: Colors.grey.shade600,
-                        height: 1.5,
+                        height: 1.6,
                       ),
                     ),
-                    const SizedBox(height: 32),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const AuthPage()),
-                        ).then((_) => setState(() {}));
-                      },
-                      icon: const Icon(Icons.login),
-                      label: const Text('Se connecter'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green.shade700,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 32,
-                          vertical: 16,
+                    const SizedBox(height: 40),
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.green.shade300,
+                            blurRadius: 12,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const AuthPage()),
+                          ).then((_) => setState(() {}));
+                        },
+                        icon: const Icon(Icons.login, size: 22),
+                        label: const Text(
+                          'Se connecter',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.3,
+                          ),
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 40,
+                            vertical: 18,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          elevation: 0,
                         ),
                       ),
                     ),
@@ -527,43 +608,50 @@ class _ProfilePageState extends State<ProfilePage> {
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.shade200,
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: color.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: color, size: 24),
+            child: Icon(icon, color: color, size: 22),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Text(
             value,
             style: TextStyle(
-              fontSize: 24,
+              fontSize: 22,
               fontWeight: FontWeight.bold,
               color: Colors.grey.shade800,
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade600,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],
@@ -579,14 +667,14 @@ class _ProfilePageState extends State<ProfilePage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           child: Text(
-            title,
+            title.toUpperCase(),
             style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey.shade600,
-              letterSpacing: 0.5,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Colors.grey.shade500,
+              letterSpacing: 1.2,
             ),
           ),
         ),
@@ -598,12 +686,28 @@ class _ProfilePageState extends State<ProfilePage> {
             boxShadow: [
               BoxShadow(
                 color: Colors.grey.shade200,
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
               ),
             ],
           ),
-          child: Column(children: items),
+          child: Column(
+            children: List.generate(
+              items.length,
+              (index) => Column(
+                children: [
+                  items[index],
+                  if (index < items.length - 1)
+                    Divider(
+                      height: 1,
+                      indent: 68,
+                      endIndent: 16,
+                      color: Colors.grey.shade200,
+                    ),
+                ],
+              ),
+            ),
+          ),
         ),
       ],
     );
@@ -616,29 +720,34 @@ class _ProfilePageState extends State<ProfilePage> {
     required VoidCallback onTap,
   }) {
     return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       leading: Container(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: Colors.green.shade50,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
         ),
-        child: Icon(icon, color: Colors.green.shade700, size: 24),
+        child: Icon(icon, color: Colors.green, size: 22),
       ),
       title: Text(
         title,
         style: const TextStyle(
           fontWeight: FontWeight.w600,
-          fontSize: 16,
+          fontSize: 15,
         ),
       ),
       subtitle: Text(
         subtitle,
         style: TextStyle(
-          fontSize: 13,
+          fontSize: 12,
           color: Colors.grey.shade600,
         ),
       ),
-      trailing: Icon(Icons.chevron_right, color: Colors.grey.shade400),
+      trailing: Icon(
+        Icons.chevron_right,
+        color: Colors.grey.shade400,
+        size: 20,
+      ),
       onTap: onTap,
     );
   }
@@ -649,54 +758,74 @@ class _ProfilePageState extends State<ProfilePage> {
     required Color color,
     required VoidCallback onTap,
   }) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: onTap,
-        icon: Icon(icon, size: 24),
-        label: Text(
-          label,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+        ],
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: onTap,
+          icon: Icon(icon, size: 22),
+          label: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.3,
+            ),
           ),
-          elevation: 4,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: color,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            elevation: 0,
+          ),
         ),
       ),
     );
   }
 
   Widget _buildPendingRequestButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: null, // Désactivé
-        icon: const Icon(Icons.hourglass_empty, size: 24),
-        label: const Text(
-          'Demande en attente',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade300, width: 1.5),
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: null,
+          icon: const Icon(Icons.hourglass_empty, size: 22),
+          label: const Text(
+            'Demande en attente',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.3,
+            ),
           ),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.grey.shade300,
-          foregroundColor: Colors.grey.shade600,
-          disabledBackgroundColor: Colors.grey.shade300,
-          disabledForegroundColor: Colors.grey.shade600,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.grey.shade100,
+            foregroundColor: Colors.grey.shade600,
+            disabledBackgroundColor: Colors.grey.shade100,
+            disabledForegroundColor: Colors.grey.shade600,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            elevation: 0,
           ),
-          elevation: 0,
         ),
       ),
     );
