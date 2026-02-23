@@ -9,16 +9,27 @@ class SupabaseProductDataSource {
   // Récupérer tous les produits
   Future<List<Product>> fetchAllProducts() async {
     try {
+      print('🔍 SupabaseDataSource: Début de la requête products...');
+      
       final response = await _client
           .from('products')
           .select()
           .eq('is_available', true)
           .order('created_at', ascending: false);
 
-      return (response as List)
+      print('📦 SupabaseDataSource: Réponse reçue, type: ${response.runtimeType}');
+      print('📦 SupabaseDataSource: Nombre d\'items: ${(response as List).length}');
+
+      final products = (response as List)
           .map((json) => Product.fromJson(json))
           .toList();
-    } catch (e) {
+      
+      print('✅ SupabaseDataSource: ${products.length} produits parsés');
+      
+      return products;
+    } catch (e, stackTrace) {
+      print('❌ SupabaseDataSource ERROR: $e');
+      print('Stack: $stackTrace');
       throw Exception('Erreur lors de la récupération des produits: $e');
     }
   }

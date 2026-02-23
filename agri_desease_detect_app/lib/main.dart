@@ -1,4 +1,5 @@
 import 'package:agri_desease_detect_app/services/supabase_service.dart';
+import 'package:agri_desease_detect_app/services/auth_service.dart';
 import 'dart:io' show Platform;
 import 'package:agri_desease_detect_app/pages/communitypage.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -21,6 +22,10 @@ Future<void> main() async {
 
     // Initialisations critiques
     await initSupabase();
+    
+    // Initialiser AuthService
+    final authService = AuthService();
+    await authService.initialize();
     
     // Lancement de l'application principale
     runApp(const TipTigaApp());
@@ -95,7 +100,7 @@ class TipTigaApp extends StatelessWidget {
       title: 'TipTiga',
       theme: tipTigaTheme,
       debugShowCheckedModeBanner: false,
-      home: const SplashScreen(),
+      home: const SplashScreen(), // Accès direct sans authentification
     );
   }
 }

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import '../../model/marketplace/product.dart';
 import '../../model/marketplace/vendor.dart';
 import '../../services/marketplace/product_repository.dart';
+import '../../services/auth_service.dart';
+import '../../services/chat_service.dart';
+import '../auth/auth_page.dart';
+import '../chat/chat_page.dart';
 
 class ProductDetailPage extends StatefulWidget {
   final Product product;
@@ -16,6 +19,8 @@ class ProductDetailPage extends StatefulWidget {
 
 class _ProductDetailPageState extends State<ProductDetailPage> {
   final ProductRepository _repository = ProductRepository();
+  final AuthService _authService = AuthService();
+  final ChatService _chatService = ChatService();
   Vendor? _vendor;
   bool _isLoadingVendor = true;
 
@@ -42,34 +47,39 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return '${formatter.format(price)} FCFA';
   }
 
-  Future<void> _makePhoneCall(String phoneNumber) async {
-    final uri = Uri(scheme: 'tel', path: phoneNumber);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    } else {
+  Future<void> _openChat() async {
+    // Vérifier si l'utilisateur est connecté
+    if (!_authService.isAuthenticated) {
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const AuthPage()),
+      );
+      
+      // Si l'utilisateur n'a pas réussi à se connecter, arrêter
+      if (result != true) return;
+    }
+
+    // Créer ou récupérer la conversation
+    try {
+      final userId = _authService.currentUserId!;
+      final conversation = await _chatService.getOrCreateConversation(
+        productId: widget.product.id,
+        vendorId: widget.product.vendorId!,
+        buyerId: userId,
+      );
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Impossible d\'ouvrir l\'application téléphone')),
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ChatPage(conversation: conversation),
+          ),
         );
       }
-    }
-  }
-
-  Future<void> _openWhatsApp(String phoneNumber, String productName) async {
-    final message = Uri.encodeComponent(
-        'Bonjour, je suis intéressé par le produit "$productName". Pouvez-vous me donner plus d\'informations ?');
-    
-    // Nettoyer le numéro (enlever les espaces et le +)
-    final cleanNumber = phoneNumber.replaceAll(RegExp(r'[^\d]'), '');
-    
-    final uri = Uri.parse('https://wa.me/$cleanNumber?text=$message');
-    
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('WhatsApp n\'est pas installé')),
+          SnackBar(content: Text('Erreur: $e')),
         );
       }
     }
@@ -258,38 +268,22 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           ),
                           const SizedBox(height: 16),
                           
-                          // Boutons de contact
-                          Row(
-                            children: [
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  onPressed: () => _makePhoneCall(_vendor!.phone),
-                                  icon: const Icon(Icons.phone),
-                                  label: const Text('Appeler'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.green.shade700,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                  ),
+                          // Bouton de contact (Chat)
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: _openChat,
+                              icon: const Icon(Icons.chat),
+                              label: const Text('Contacter le vendeur'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green.shade700,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  onPressed: () => _openWhatsApp(
-                                    _vendor!.whatsapp ?? _vendor!.phone,
-                                    widget.product.name,
-                                  ),
-                                  icon: const Icon(Icons.chat),
-                                  label: const Text('WhatsApp'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF25D366),
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                  ),
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
                         ],
                       ),

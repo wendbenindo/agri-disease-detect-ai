@@ -18,24 +18,33 @@ class ProductRepository {
   // Récupérer tous les produits (cache-first)
   Future<({List<Product> products, bool isOffline})> getAllProducts() async {
     final isOnline = await _isOnline();
+    
+    print('🌐 ProductRepository: isOnline = $isOnline');
 
     if (isOnline) {
       try {
+        print('📡 Tentative de récupération depuis Supabase...');
         // Récupérer depuis Supabase
         final products = await _remoteDataSource.fetchAllProducts();
+        
+        print('✅ Produits récupérés depuis Supabase: ${products.length}');
         
         // Sauvegarder en cache
         await _localDataSource.saveProducts(products);
         await _localDataSource.setLastSyncTime(DateTime.now());
         
         return (products: products, isOffline: false);
-      } catch (e) {
+      } catch (e, stackTrace) {
         // En cas d'erreur, utiliser le cache
+        print('❌ Erreur Supabase: $e');
+        print('Stack trace: $stackTrace');
         final cachedProducts = await _localDataSource.getProducts();
+        print('📦 Utilisation du cache: ${cachedProducts.length} produits');
         return (products: cachedProducts, isOffline: true);
       }
     } else {
       // Mode offline, utiliser le cache
+      print('📴 Mode offline détecté');
       final cachedProducts = await _localDataSource.getProducts();
       return (products: cachedProducts, isOffline: true);
     }

@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import '../../model/marketplace/product.dart';
 import '../../model/marketplace/category.dart';
 import '../../services/marketplace/product_repository.dart';
+import '../../services/auth_service.dart';
+import '../../services/chat_service.dart';
 import '../../widgets/marketplace/product_card.dart';
 import 'product_detail_page.dart';
+import '../auth/auth_page.dart';
+import '../chat/chat_page.dart';
 
 class MarketplacePage extends StatefulWidget {
   const MarketplacePage({super.key});
@@ -14,6 +18,8 @@ class MarketplacePage extends StatefulWidget {
 
 class _MarketplacePageState extends State<MarketplacePage> {
   final ProductRepository _repository = ProductRepository();
+  final AuthService _authService = AuthService();
+  final ChatService _chatService = ChatService();
   
   List<Product> _allProducts = [];
   List<Product> _filteredProducts = [];
@@ -195,6 +201,7 @@ class _MarketplacePageState extends State<MarketplacePage> {
                                   ),
                                 );
                               },
+                              onChatTap: () => _openChat(product),
                             );
                           },
                         ),
@@ -203,6 +210,89 @@ class _MarketplacePageState extends State<MarketplacePage> {
         ],
       ),
     );
+  }
+
+  Future<void> _openChat(Product product) async {
+    print('🎯 _openChat appelé pour produit: ${product.name}');
+    print('   - productId: ${product.id}');
+    print('   - vendorId: ${product.vendorId}');
+    
+    // Vérifier si le produit a un vendeur
+    if (product.vendorId == null) {
+      print('❌ Erreur: vendorId est null');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ce produit n\'a pas de vendeur associé')),
+      );
+      return;
+    }
+
+    print('✅ vendorId OK: ${product.vendorId}');
+
+    // Vérifier si l'utilisateur est connecté
+    print('🔍 Vérification authentification...');
+    print('   - isAuthenticated: ${_authService.isAuthenticated}');
+    print('   - currentUserId: ${_authService.currentUserId}');
+    
+    if (!_authService.isAuthenticated) {
+      print('⚠️ Utilisateur non connecté, affichage AuthPage');
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const AuthPage()),
+      );
+      
+      print('📱 Retour de AuthPage: result=$result');
+      if (result != true) {
+        print('❌ Authentification annulée ou échouée');
+        return;
+      }
+      
+      print('✅ Authentification réussie');
+      print('   - currentUserId après auth: ${_authService.currentUserId}');
+    }
+
+    // Créer ou récupérer la conversation
+    try {
+      final userId = _authService.currentUserId;
+      print('🚀 Tentative création conversation...');
+      print('   - userId: $userId');
+      print('   - productId: ${product.id}');
+      print('   - vendorId: ${product.vendorId}');
+      
+      if (userId == null) {
+        print('❌ ERREUR: userId est null après authentification!');
+        throw Exception('Utilisateur non connecté');
+      }
+      
+      final conversation = await _chatService.getOrCreateConversation(
+        productId: product.id,
+        vendorId: product.vendorId!,
+        buyerId: userId,
+      );
+
+      print('✅ Conversation créée/récupérée: ${conversation.id}');
+
+      if (mounted) {
+        print('📱 Navigation vers ChatPage');
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ChatPage(conversation: conversation),
+          ),
+        );
+      }
+    } catch (e, stackTrace) {
+      print('❌ ERREUR dans _openChat: $e');
+      print('📍 StackTrace: $stackTrace');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildCategoryChip(String label, String? categoryId) {
