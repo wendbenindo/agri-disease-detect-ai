@@ -56,7 +56,7 @@ class AuthService {
     print('   - role: $_cachedUserRole');
   }
 
-  // Créer un nouveau compte
+  // Créer un nouveau compte (sans connexion automatique)
   Future<Map<String, dynamic>> signUp({
     required String phoneNumber,
     required String name,
@@ -82,24 +82,14 @@ class AuthService {
 
       final userRole = user['role'] as String? ?? 'buyer';
 
-      // Sauvegarder dans le cache local
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_userIdKey, userId);
-      await prefs.setString(_userPhoneKey, phoneNumber);
-      await prefs.setString(_userNameKey, name);
-      await prefs.setString(_userRoleKey, userRole);
-
-      _cachedUserId = userId;
-      _cachedUserPhone = phoneNumber;
-      _cachedUserName = name;
-      _cachedUserRole = userRole;
-
-      print('✅ Compte créé et sauvegardé:');
+      print('✅ Compte créé (non connecté):');
       print('   - userId: $userId');
       print('   - phone: $phoneNumber');
       print('   - name: $name');
       print('   - role: $userRole');
+      print('   - is_verified: false (en attente de vérification)');
 
+      // NE PAS sauvegarder dans le cache - l'utilisateur doit d'abord vérifier son numéro
       return {
         'id': userId,
         'phone_number': phoneNumber,
@@ -112,6 +102,39 @@ class AuthService {
         throw Exception('Ce numéro est déjà utilisé');
       }
       throw Exception('Erreur lors de la création du compte: $e');
+    }
+  }
+
+  // Connecter l'utilisateur après vérification réussie
+  Future<void> loginAfterVerification({
+    required String userId,
+    required String phoneNumber,
+    required String name,
+    required String role,
+  }) async {
+    try {
+      print('✅ Connexion après vérification...');
+      
+      // Sauvegarder dans le cache local
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_userIdKey, userId);
+      await prefs.setString(_userPhoneKey, phoneNumber);
+      await prefs.setString(_userNameKey, name);
+      await prefs.setString(_userRoleKey, role);
+
+      _cachedUserId = userId;
+      _cachedUserPhone = phoneNumber;
+      _cachedUserName = name;
+      _cachedUserRole = role;
+
+      print('✅ Utilisateur connecté:');
+      print('   - userId: $userId');
+      print('   - phone: $phoneNumber');
+      print('   - name: $name');
+      print('   - role: $role');
+    } catch (e) {
+      print('❌ Erreur loginAfterVerification: $e');
+      throw Exception('Erreur lors de la connexion: $e');
     }
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/auth_service.dart';
+import 'choose_verification_method_page.dart';
 
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
@@ -43,6 +44,25 @@ class _AuthPageState extends State<AuthPage> {
           password: _passwordController.text,
         );
         print('✅ Compte créé: $result');
+
+        final userId = result['id'] as String;
+        final phoneNumber = result['phone_number'] as String;
+        final userName = result['name'] as String;
+
+        if (mounted) {
+          // Rediriger vers le choix du canal de vérification
+          print('📱 Redirection vers choix du canal...');
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ChooseVerificationMethodPage(
+                userId: userId,
+                phoneNumber: phoneNumber,
+                userName: userName,
+              ),
+            ),
+          );
+        }
       } else {
         // Se connecter
         print('🔐 Connexion...');
@@ -51,11 +71,11 @@ class _AuthPageState extends State<AuthPage> {
           password: _passwordController.text,
         );
         print('✅ Connecté: $result');
-      }
 
-      if (mounted) {
-        print('✅ Navigation retour avec succès');
-        Navigator.pop(context, true);
+        if (mounted) {
+          print('✅ Navigation retour avec succès');
+          Navigator.pop(context, true);
+        }
       }
     } catch (e) {
       print('❌ Erreur: $e');
