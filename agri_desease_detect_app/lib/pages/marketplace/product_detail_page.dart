@@ -90,8 +90,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.product.name),
-        backgroundColor: Colors.green.shade700,
-        foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
         child: Column(

@@ -20,15 +20,16 @@ final ThemeData tipTigaTheme = ThemeData(
   primaryColor: AppColors.primaryDarkGreen,
   scaffoldBackgroundColor: AppColors.backgroundColor,
   fontFamily: 'SF Pro Display',
-  appBarTheme: const AppBarTheme(
-    backgroundColor: AppColors.backgroundColor,
-    foregroundColor: AppColors.primaryDarkGreen,
+  appBarTheme: AppBarTheme(
+    backgroundColor: AppColors.primaryDarkGreen,
+    foregroundColor: Colors.white,
     elevation: 1,
     centerTitle: true,
-    titleTextStyle: TextStyle(
+    iconTheme: const IconThemeData(color: Colors.white),
+    titleTextStyle: const TextStyle(
       fontSize: 20,
       fontWeight: FontWeight.w700,
-      color: AppColors.primaryDarkGreen,
+      color: Colors.white,
       fontFamily: 'SF Pro Display',
     ),
   ),

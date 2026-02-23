@@ -54,8 +54,6 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mes Conversations'),
-        backgroundColor: Colors.green.shade700,
-        foregroundColor: Colors.white,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

@@ -60,9 +60,6 @@ class _SimplePhoneAuthPageState extends State<SimplePhoneAuthPage> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('Connexion'),
-        backgroundColor: Colors.green.shade700,
-        foregroundColor: Colors.white,
-        elevation: 0,
       ),
       body: SingleChildScrollView(
         child: Padding(

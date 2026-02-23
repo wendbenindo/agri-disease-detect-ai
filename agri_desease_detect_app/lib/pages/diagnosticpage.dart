@@ -154,17 +154,8 @@ class _DiagnosticPageState extends State<DiagnosticPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Diagnostic',
-          style: TextStyle(
-            color: Color(0xFF14532D),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Colors.white,
-        iconTheme: const IconThemeData(color: Color(0xFF14532D)),
+        title: const Text('Diagnostic'),
         centerTitle: true,
-        elevation: 1,
         actions: [
           IconButton(
             icon: const Icon(Icons.model_training),

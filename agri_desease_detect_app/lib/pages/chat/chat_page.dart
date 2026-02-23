@@ -115,8 +115,6 @@ class _ChatPageState extends State<ChatPage> {
             ),
           ],
         ),
-        backgroundColor: Colors.green.shade700,
-        foregroundColor: Colors.white,
       ),
       body: Column(
         children: [

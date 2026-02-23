@@ -81,9 +81,6 @@ class _AuthPageState extends State<AuthPage> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(_isSignUp ? 'Créer un compte' : 'Connexion'),
-        backgroundColor: Colors.green.shade700,
-        foregroundColor: Colors.white,
-        elevation: 0,
       ),
       body: SingleChildScrollView(
         child: Padding(

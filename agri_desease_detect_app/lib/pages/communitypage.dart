@@ -55,8 +55,6 @@ class CommunityPage extends StatelessWidget {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('Communauté'),
-        backgroundColor: const Color(0xFF15803D),
-        foregroundColor: Colors.white,
         centerTitle: true,
       ),
       body: Padding(

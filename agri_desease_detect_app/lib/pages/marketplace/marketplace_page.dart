@@ -96,8 +96,6 @@ class _MarketplacePageState extends State<MarketplacePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Marketplace'),
-        backgroundColor: Colors.green.shade700,
-        foregroundColor: Colors.white,
       ),
       body: Column(
         children: [

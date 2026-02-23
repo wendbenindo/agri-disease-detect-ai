@@ -52,8 +52,6 @@ class _ProfilePageState extends State<ProfilePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profil'),
-        backgroundColor: Colors.green.shade700,
-        foregroundColor: Colors.white,
       ),
       body: isAuthenticated
           ? ListView(
