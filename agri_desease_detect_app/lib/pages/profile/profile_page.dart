@@ -155,19 +155,21 @@ class _ProfilePageState extends State<ProfilePage> {
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text(
-          'Profil',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
+      appBar: isAuthenticated 
+          ? null  // Pas d'AppBar si connecté (on utilise extendBodyBehindAppBar)
+          : AppBar(
+              backgroundColor: Colors.white,
+              elevation: 0,
+              title: const Text(
+                'Profil',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              iconTheme: const IconThemeData(color: Colors.black),
+            ),
+      extendBodyBehindAppBar: isAuthenticated,
       body: isAuthenticated
           ? SingleChildScrollView(
               child: Column(
