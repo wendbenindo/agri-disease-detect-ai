@@ -2,6 +2,8 @@ import 'package:agri_desease_detect_app/services/supabase_service.dart';
 import 'package:agri_desease_detect_app/services/auth_service.dart';
 import 'dart:io' show Platform;
 import 'package:agri_desease_detect_app/pages/communitypage.dart';
+import 'package:agri_desease_detect_app/pages/profile/profile_page.dart';
+import 'package:agri_desease_detect_app/pages/chat/conversations_list_page.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -119,7 +121,8 @@ class _NavigationControllerState extends State<NavigationController> {
     HomePage(),
     DiagnosticPage(),
     MarketplacePage(),
-    CommunityPage(),
+    ConversationsListPage(),
+    ProfilePage(),
   ];
 
   void _onItemTapped(int index) {
@@ -152,8 +155,12 @@ class _NavigationControllerState extends State<NavigationController> {
             label: 'Marketplace',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.groups),
-            label: 'Communauté',
+            icon: Icon(Icons.chat),
+            label: 'Messages',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profil',
           ),
         ],
       ),
