@@ -10,6 +10,8 @@ class ChatService {
     required String productId,
     required String vendorId,
     required String buyerId,
+    String? productName,
+    String? productPhotoUrl,
   }) async {
     print('📞 Création/récupération conversation: productId=$productId, buyerId=$buyerId, vendorId=$vendorId');
 
@@ -39,20 +41,45 @@ class ChatService {
         .single();
 
     print('✅ Conversation créée: ${response['id']}');
+    
+    // Envoyer un message de bienvenue avec l'image du produit
+    if (productPhotoUrl != null && productName != null) {
+      print('📸 Envoi du message de bienvenue avec image...');
+      await sendMessage(
+        conversationId: response['id'],
+        senderId: buyerId,
+        content: '👋 Bonjour, je suis intéressé par ce produit : $productName',
+        imageUrl: productPhotoUrl,
+      );
+    }
+    
     return Conversation.fromJson(response);
   }
 
   // Récupérer toutes les conversations de l'utilisateur
   Future<List<Conversation>> getUserConversations(String userId) async {
-    final response = await _client
-        .from('conversations_with_details')
-        .select()
-        .eq('buyer_id', userId)
-        .order('updated_at', ascending: false);
+    print('📞 Récupération des conversations pour userId: $userId');
+    
+    try {
+      final response = await _client
+          .from('conversations_with_details')
+          .select()
+          .or('buyer_id.eq.$userId,vendor_id.eq.$userId')
+          .order('updated_at', ascending: false);
 
-    return (response as List)
-        .map((json) => Conversation.fromJson(json))
-        .toList();
+      print('📦 Conversations récupérées: ${(response as List).length}');
+      
+      return (response as List)
+          .map((json) {
+            print('📄 Conversation JSON: $json');
+            return Conversation.fromJson(json);
+          })
+          .toList();
+    } catch (e, stackTrace) {
+      print('❌ Erreur getUserConversations: $e');
+      print('Stack: $stackTrace');
+      rethrow;
+    }
   }
 
   // Récupérer les messages d'une conversation
@@ -73,14 +100,21 @@ class ChatService {
     required String conversationId,
     required String senderId,
     required String content,
+    String? imageUrl,
   }) async {
+    final messageData = {
+      'conversation_id': conversationId,
+      'sender_id': senderId,
+      'content': content,
+    };
+    
+    if (imageUrl != null) {
+      messageData['image_url'] = imageUrl;
+    }
+
     final response = await _client
         .from('messages')
-        .insert({
-          'conversation_id': conversationId,
-          'sender_id': senderId,
-          'content': content,
-        })
+        .insert(messageData)
         .select()
         .single();
 

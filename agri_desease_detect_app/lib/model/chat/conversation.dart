@@ -8,8 +8,10 @@ class Conversation {
   
   // Détails supplémentaires (de la vue)
   final String? productName;
-  final String? productPhoto;
+  final String? productPhotoUrl;
   final String? vendorName;
+  final String? lastMessage;
+  final DateTime? lastMessageTime;
   final int unreadCount;
 
   Conversation({
@@ -20,8 +22,10 @@ class Conversation {
     required this.createdAt,
     required this.updatedAt,
     this.productName,
-    this.productPhoto,
+    this.productPhotoUrl,
     this.vendorName,
+    this.lastMessage,
+    this.lastMessageTime,
     this.unreadCount = 0,
   });
 
@@ -34,8 +38,12 @@ class Conversation {
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
       productName: json['product_name'] as String?,
-      productPhoto: json['product_photo'] as String?,
+      productPhotoUrl: json['product_photo_url'] as String?,
       vendorName: json['vendor_name'] as String?,
+      lastMessage: json['last_message'] as String?,
+      lastMessageTime: json['last_message_time'] != null 
+          ? DateTime.parse(json['last_message_time'] as String)
+          : null,
       unreadCount: json['unread_count'] as int? ?? 0,
     );
   }

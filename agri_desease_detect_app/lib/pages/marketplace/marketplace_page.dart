@@ -64,15 +64,17 @@ class _MarketplacePageState extends State<MarketplacePage> {
   void _filterProducts() {
     setState(() {
       _filteredProducts = _allProducts.where((product) {
-        // Filtre par catégorie
+        // Si recherche active, ignorer le filtre de catégorie
+        if (_searchQuery.isNotEmpty) {
+          return product.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                 product.description.toLowerCase().contains(_searchQuery.toLowerCase());
+        }
+        
+        // Sinon, filtre par catégorie uniquement
         final matchesCategory = _selectedCategoryId == null ||
             product.categoryId == _selectedCategoryId;
 
-        // Filtre par recherche
-        final matchesSearch = _searchQuery.isEmpty ||
-            product.name.toLowerCase().contains(_searchQuery.toLowerCase());
-
-        return matchesCategory && matchesSearch;
+        return matchesCategory;
       }).toList();
     });
   }
@@ -155,7 +157,7 @@ class _MarketplacePageState extends State<MarketplacePage> {
           // Liste des produits
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? _buildSkeletonLoader()
                 : _filteredProducts.isEmpty
                     ? Center(
                         child: Column(
@@ -265,6 +267,8 @@ class _MarketplacePageState extends State<MarketplacePage> {
         productId: product.id,
         vendorId: product.vendorId!,
         buyerId: userId,
+        productName: product.name,
+        productPhotoUrl: product.photoUrl,
       );
 
       print('✅ Conversation créée/récupérée: ${conversation.id}');
@@ -308,6 +312,82 @@ class _MarketplacePageState extends State<MarketplacePage> {
           color: isSelected ? Colors.white : Colors.black87,
         ),
       ),
+    );
+  }
+
+  Widget _buildSkeletonLoader() {
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.75,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+      ),
+      itemCount: 6,
+      itemBuilder: (context, index) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.shade200,
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Image skeleton
+              Container(
+                height: 120,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(16),
+                  ),
+                ),
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color: Colors.green.shade700,
+                    strokeWidth: 2,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Title skeleton
+                    Container(
+                      height: 16,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Price skeleton
+                    Container(
+                      height: 14,
+                      width: 80,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

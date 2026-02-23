@@ -13,10 +13,12 @@ class AuthService {
   static const String _userIdKey = 'current_user_id';
   static const String _userPhoneKey = 'current_user_phone';
   static const String _userNameKey = 'current_user_name';
+  static const String _userRoleKey = 'current_user_role';
 
   String? _cachedUserId;
   String? _cachedUserPhone;
   String? _cachedUserName;
+  String? _cachedUserRole;
 
   // Vérifier si l'utilisateur est authentifié
   bool get isAuthenticated => _cachedUserId != null;
@@ -30,17 +32,28 @@ class AuthService {
   // Obtenir le nom de l'utilisateur actuel
   String? get currentUserName => _cachedUserName;
 
+  // Obtenir le rôle de l'utilisateur actuel
+  String? get currentUserRole => _cachedUserRole;
+
+  // Vérifier si l'utilisateur est vendeur
+  bool get isVendor => _cachedUserRole == 'vendor' || _cachedUserRole == 'admin';
+
+  // Vérifier si l'utilisateur est admin
+  bool get isAdmin => _cachedUserRole == 'admin';
+
   // Initialiser le service (charger depuis le cache)
   Future<void> initialize() async {
     final prefs = await SharedPreferences.getInstance();
     _cachedUserId = prefs.getString(_userIdKey);
     _cachedUserPhone = prefs.getString(_userPhoneKey);
     _cachedUserName = prefs.getString(_userNameKey);
+    _cachedUserRole = prefs.getString(_userRoleKey);
     
     print('🔧 AuthService initialized:');
     print('   - userId: $_cachedUserId');
     print('   - phone: $_cachedUserPhone');
     print('   - name: $_cachedUserName');
+    print('   - role: $_cachedUserRole');
   }
 
   // Créer un nouveau compte
@@ -67,25 +80,31 @@ class AuthService {
           .eq('id', userId)
           .single();
 
+      final userRole = user['role'] as String? ?? 'buyer';
+
       // Sauvegarder dans le cache local
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_userIdKey, userId);
       await prefs.setString(_userPhoneKey, phoneNumber);
       await prefs.setString(_userNameKey, name);
+      await prefs.setString(_userRoleKey, userRole);
 
       _cachedUserId = userId;
       _cachedUserPhone = phoneNumber;
       _cachedUserName = name;
+      _cachedUserRole = userRole;
 
       print('✅ Compte créé et sauvegardé:');
       print('   - userId: $userId');
       print('   - phone: $phoneNumber');
       print('   - name: $name');
+      print('   - role: $userRole');
 
       return {
         'id': userId,
         'phone_number': phoneNumber,
         'name': name,
+        'role': userRole,
       };
     } catch (e) {
       print('❌ Erreur signUp: $e');
@@ -121,25 +140,38 @@ class AuthService {
       final userName = userData['user_name'] as String;
       final userPhone = userData['user_phone'] as String;
 
+      // Récupérer le rôle depuis la table users
+      final userInfo = await _supabase
+          .from('users')
+          .select('role')
+          .eq('id', userId)
+          .single();
+      
+      final userRole = userInfo['role'] as String? ?? 'buyer';
+
       // Sauvegarder dans le cache local
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_userIdKey, userId);
       await prefs.setString(_userPhoneKey, userPhone);
       await prefs.setString(_userNameKey, userName);
+      await prefs.setString(_userRoleKey, userRole);
 
       _cachedUserId = userId;
       _cachedUserPhone = userPhone;
       _cachedUserName = userName;
+      _cachedUserRole = userRole;
 
       print('✅ Connexion réussie et sauvegardée:');
       print('   - userId: $userId');
       print('   - phone: $userPhone');
       print('   - name: $userName');
+      print('   - role: $userRole');
 
       return {
         'id': userId,
         'phone_number': userPhone,
         'name': userName,
+        'role': userRole,
       };
     } catch (e) {
       print('❌ Erreur signIn: $e');
@@ -153,10 +185,12 @@ class AuthService {
     await prefs.remove(_userIdKey);
     await prefs.remove(_userPhoneKey);
     await prefs.remove(_userNameKey);
+    await prefs.remove(_userRoleKey);
 
     _cachedUserId = null;
     _cachedUserPhone = null;
     _cachedUserName = null;
+    _cachedUserRole = null;
     
     print('👋 Déconnexion effectuée');
   }

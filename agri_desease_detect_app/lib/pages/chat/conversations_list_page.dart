@@ -100,30 +100,85 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
   }
 
   Widget _buildConversationTile(Conversation conversation) {
-    // TODO: Récupérer le nom du produit et du vendeur depuis la conversation
-    final productName = 'Produit'; // À remplacer
-    final vendorName = 'Vendeur'; // À remplacer
-    final lastMessage = 'Dernier message...'; // À remplacer
-    final unreadCount = 0; // À remplacer
+    final productName = conversation.productName ?? 'Produit';
+    final vendorName = conversation.vendorName ?? 'Vendeur';
+    final lastMessage = conversation.lastMessage ?? 'Aucun message';
+    final unreadCount = conversation.unreadCount;
+    
+    // Formater le temps du dernier message
+    String timeText = '';
+    if (conversation.lastMessageTime != null) {
+      final now = DateTime.now();
+      final diff = now.difference(conversation.lastMessageTime!);
+      
+      if (diff.inDays == 0) {
+        timeText = '${conversation.lastMessageTime!.hour.toString().padLeft(2, '0')}:${conversation.lastMessageTime!.minute.toString().padLeft(2, '0')}';
+      } else if (diff.inDays == 1) {
+        timeText = 'Hier';
+      } else if (diff.inDays < 7) {
+        timeText = '${diff.inDays}j';
+      } else {
+        timeText = '${conversation.lastMessageTime!.day}/${conversation.lastMessageTime!.month}';
+      }
+    }
 
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: Colors.green.shade700,
-        child: const Icon(Icons.person, color: Colors.white),
+        backgroundImage: conversation.productPhotoUrl != null
+            ? NetworkImage(conversation.productPhotoUrl!)
+            : null,
+        child: conversation.productPhotoUrl == null
+            ? const Icon(Icons.shopping_bag, color: Colors.white)
+            : null,
       ),
-      title: Text(
-        productName,
-        style: const TextStyle(fontWeight: FontWeight.bold),
+      title: Row(
+        children: [
+          Expanded(
+            child: Text(
+              productName,
+              style: TextStyle(
+                fontWeight: unreadCount > 0 ? FontWeight.bold : FontWeight.w600,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (timeText.isNotEmpty)
+            Text(
+              timeText,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey.shade600,
+              ),
+            ),
+        ],
       ),
-      subtitle: Text(
-        lastMessage,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            vendorName,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            lastMessage,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontWeight: unreadCount > 0 ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+        ],
       ),
       trailing: unreadCount > 0
           ? Container(
               padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: Colors.red,
                 shape: BoxShape.circle,
               ),

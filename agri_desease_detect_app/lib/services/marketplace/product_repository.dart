@@ -169,4 +169,60 @@ class ProductRepository {
   Future<bool> isCacheExpired() async {
     return await _localDataSource.isCacheExpired();
   }
+
+  // Ajouter un produit (vendeurs uniquement)
+  Future<Product> addProduct({
+    required String name,
+    required String description,
+    required double price,
+    required String categoryId,
+    required String vendorId,
+    String? photoUrl,
+    String? dosage,
+    String? instructions,
+  }) async {
+    final isOnline = await _isOnline();
+    
+    if (!isOnline) {
+      throw Exception('Connexion internet requise pour ajouter un produit');
+    }
+
+    try {
+      final product = await _remoteDataSource.addProduct(
+        name: name,
+        description: description,
+        price: price,
+        categoryId: categoryId,
+        vendorId: vendorId,
+        photoUrl: photoUrl,
+        dosage: dosage,
+        instructions: instructions,
+      );
+
+      // Rafraîchir le cache
+      await syncAll();
+
+      return product;
+    } catch (e) {
+      throw Exception('Erreur lors de l\'ajout du produit: $e');
+    }
+  }
+
+  // Supprimer un produit (vendeurs uniquement)
+  Future<void> deleteProduct(String productId) async {
+    final isOnline = await _isOnline();
+    
+    if (!isOnline) {
+      throw Exception('Connexion internet requise pour supprimer un produit');
+    }
+
+    try {
+      await _remoteDataSource.deleteProduct(productId);
+
+      // Rafraîchir le cache
+      await syncAll();
+    } catch (e) {
+      throw Exception('Erreur lors de la suppression du produit: $e');
+    }
+  }
 }

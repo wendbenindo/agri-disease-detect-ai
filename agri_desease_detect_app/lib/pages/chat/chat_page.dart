@@ -108,10 +108,13 @@ class _ChatPageState extends State<ChatPage> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(widget.conversation.vendorName ?? 'Vendeur'),
+            Text(
+              widget.conversation.vendorName ?? 'Vendeur',
+              style: const TextStyle(fontSize: 16),
+            ),
             Text(
               widget.conversation.productName ?? '',
-              style: const TextStyle(fontSize: 12),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
             ),
           ],
         ),
@@ -237,6 +240,24 @@ class _ChatPageState extends State<ChatPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Image si présente
+            if (message.imageUrl != null) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  message.imageUrl!,
+                  width: double.infinity,
+                  height: 150,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    height: 150,
+                    color: Colors.grey.shade300,
+                    child: const Icon(Icons.broken_image, size: 50),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
             Text(
               message.content,
               style: TextStyle(

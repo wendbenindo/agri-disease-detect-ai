@@ -117,4 +117,50 @@ class SupabaseProductDataSource {
       return null;
     }
   }
+
+  // Ajouter un produit
+  Future<Product> addProduct({
+    required String name,
+    required String description,
+    required double price,
+    required String categoryId,
+    required String vendorId,
+    String? photoUrl,
+    String? dosage,
+    String? instructions,
+  }) async {
+    try {
+      final response = await _client
+          .from('products')
+          .insert({
+            'name': name,
+            'description': description,
+            'price': price,
+            'category_id': categoryId,
+            'vendor_id': vendorId,
+            'photo_url': photoUrl,
+            'dosage': dosage,
+            'instructions': instructions,
+            'is_available': true,
+          })
+          .select()
+          .single();
+
+      return Product.fromJson(response);
+    } catch (e) {
+      throw Exception('Erreur lors de l\'ajout du produit: $e');
+    }
+  }
+
+  // Supprimer un produit
+  Future<void> deleteProduct(String productId) async {
+    try {
+      await _client
+          .from('products')
+          .delete()
+          .eq('id', productId);
+    } catch (e) {
+      throw Exception('Erreur lors de la suppression du produit: $e');
+    }
+  }
 }
