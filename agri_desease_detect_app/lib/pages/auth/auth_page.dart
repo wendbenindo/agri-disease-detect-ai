@@ -45,6 +45,180 @@ class _AuthPageState extends State<AuthPage> {
     }
   }
 
+  void _showVerificationRequiredDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.verified_user,
+                color: Colors.orange.shade700,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Vérification requise',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Votre compte n\'est pas encore vérifié.',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Pour des raisons de sécurité, vous devez vérifier votre numéro de téléphone avant de pouvoir vous connecter.',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade700,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.blue.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Un code de vérification a été généré pour vous',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.blue.shade900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Annuler',
+              style: TextStyle(
+                color: Colors.grey.shade700,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: () async {
+              // Récupérer les infos AVANT de fermer le dialogue
+              try {
+                final userInfo = await _authService.getUserByPhone(_completePhoneNumber);
+                
+                if (userInfo != null) {
+                  // Fermer le dialogue
+                  if (mounted) {
+                    Navigator.pop(context);
+                  }
+                  
+                  // Attendre un peu pour que le dialogue se ferme
+                  await Future.delayed(const Duration(milliseconds: 100));
+                  
+                  // Rediriger vers la page de vérification
+                  if (mounted) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ChooseVerificationMethodPage(
+                          userId: userInfo['id'],
+                          phoneNumber: userInfo['phone_number'],
+                          userName: userInfo['name'],
+                        ),
+                      ),
+                    );
+                  }
+                } else {
+                  // Fermer le dialogue
+                  if (mounted) {
+                    Navigator.pop(context);
+                  }
+                  
+                  // Afficher une erreur
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Impossible de récupérer les informations du compte'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              } catch (e) {
+                print('❌ Erreur récupération infos: $e');
+                
+                // Fermer le dialogue
+                if (mounted) {
+                  Navigator.pop(context);
+                }
+                
+                // Afficher une erreur
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Erreur lors de la récupération des informations'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            icon: const Icon(Icons.verified_user, size: 18),
+            label: const Text(
+              'Vérifier maintenant',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -90,15 +264,31 @@ class _AuthPageState extends State<AuthPage> {
       } else {
         // Se connecter
         print('🔐 Connexion...');
-        final result = await _authService.signIn(
-          phoneNumber: _completePhoneNumber, // Utiliser le numéro complet
-          password: _passwordController.text,
-        );
-        print('✅ Connecté: $result');
+        try {
+          final result = await _authService.signIn(
+            phoneNumber: _completePhoneNumber,
+            password: _passwordController.text,
+          );
+          print('✅ Connecté: $result');
 
-        if (mounted) {
-          print('✅ Navigation retour avec succès');
-          Navigator.pop(context, true);
+          if (mounted) {
+            print('✅ Navigation retour avec succès');
+            Navigator.pop(context, true);
+          }
+        } catch (e) {
+          print('❌ Erreur connexion: $e');
+          
+          // Vérifier si c'est une erreur de compte non vérifié
+          if (e.toString().contains('pas encore vérifié') || 
+              e.toString().contains('not verified')) {
+            // Récupérer les infos du compte pour rediriger vers la vérification
+            if (mounted) {
+              _showVerificationRequiredDialog();
+            }
+          } else {
+            // Autre erreur
+            throw e;
+          }
         }
       }
     } catch (e) {

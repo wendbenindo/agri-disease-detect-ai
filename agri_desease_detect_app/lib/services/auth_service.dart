@@ -225,4 +225,26 @@ class AuthService {
     
     print('👋 Déconnexion effectuée');
   }
+
+  // Récupérer les infos d'un utilisateur par numéro de téléphone
+  Future<Map<String, dynamic>?> getUserByPhone(String phoneNumber) async {
+    try {
+      final response = await _supabase
+          .from('users')
+          .select('id, phone_number, name, role, is_verified')
+          .eq('phone_number', phoneNumber)
+          .single();
+
+      return {
+        'id': response['id'],
+        'phone_number': response['phone_number'],
+        'name': response['name'],
+        'role': response['role'],
+        'is_verified': response['is_verified'],
+      };
+    } catch (e) {
+      print('❌ Erreur getUserByPhone: $e');
+      return null;
+    }
+  }
 }

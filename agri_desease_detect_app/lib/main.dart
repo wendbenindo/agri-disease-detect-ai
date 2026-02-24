@@ -114,25 +114,56 @@ class NavigationController extends StatefulWidget {
   State<NavigationController> createState() => _NavigationControllerState();
 }
 
-class _NavigationControllerState extends State<NavigationController> {
+class _NavigationControllerState extends State<NavigationController> with WidgetsBindingObserver {
   int _selectedIndex = 0;
+  int _profileRebuildKey = 0; // Compteur pour forcer le rebuild
+  final AuthService _authService = AuthService();
 
-  final List<Widget> _pages = const [
-    HomePage(),
-    DiagnosticPage(),
-    MarketplacePage(),
-    ConversationsListPage(),
-    ProfilePage(),
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Quand l'app revient au premier plan, forcer un rebuild
+    if (state == AppLifecycleState.resumed) {
+      setState(() {
+        _profileRebuildKey++;
+      });
+    }
+  }
+
+  List<Widget> get _pages => [
+    const HomePage(),
+    const DiagnosticPage(),
+    const MarketplacePage(),
+    const ConversationsListPage(),
+    ProfilePage(key: ValueKey(_profileRebuildKey)), // Nouvelle clé à chaque rebuild
   ];
 
   void _onItemTapped(int index) {
     setState(() {
+      // Si on navigue vers le profil, incrémenter la clé pour forcer un rebuild complet
+      if (index == 4 && _selectedIndex != 4) {
+        _profileRebuildKey++;
+      }
       _selectedIndex = index;
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    // Vérifier l'état d'authentification pour déterminer les onglets visibles
+    final isAuthenticated = _authService.isAuthenticated;
+    
     return Scaffold(
       body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
@@ -141,6 +172,7 @@ class _NavigationControllerState extends State<NavigationController> {
         backgroundColor: Colors.white,
         selectedItemColor: Colors.green.shade700,
         unselectedItemColor: Colors.grey,
+        type: BottomNavigationBarType.fixed, // Important pour afficher tous les items
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),

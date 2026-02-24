@@ -96,7 +96,7 @@ class _ChooseVerificationMethodPageState
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SafeArea(
-              child: Padding(
+              child: SingleChildScrollView(
                 padding: const EdgeInsets.all(24.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -174,7 +174,7 @@ class _ChooseVerificationMethodPageState
                       onTap: () => _selectMethod('sms'),
                     ),
                     
-                    const Spacer(),
+                    const SizedBox(height: 40),
                     
                     // Info
                     Container(

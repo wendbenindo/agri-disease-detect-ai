@@ -16,7 +16,7 @@ class ProfilePage extends StatefulWidget {
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class _ProfilePageState extends State<ProfilePage> with AutomaticKeepAliveClientMixin {
   final AuthService _authService = AuthService();
   final VendorService _vendorService = VendorService();
   
@@ -25,16 +25,37 @@ class _ProfilePageState extends State<ProfilePage> {
   String? _vendorRequestStatus; // 'pending', 'approved', 'rejected', null
 
   @override
+  bool get wantKeepAlive => false; // Ne pas garder l'état, forcer le rebuild
+
+  @override
   void initState() {
     super.initState();
     _loadUserRole();
+    
+    // Écouter les changements d'état de l'app pour recharger si nécessaire
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadUserRole();
+      }
+    });
   }
 
   @override
+  void didUpdateWidget(ProfilePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Recharger quand le widget est mis à jour
+    print('🔄 ProfilePage: didUpdateWidget appelé');
+    _loadUserRole();
+  }
+  
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Recharger le rôle à chaque fois qu'on revient sur la page
-    _loadUserRole();
+    // Recharger aussi quand les dépendances changent
+    print('🔄 ProfilePage: didChangeDependencies appelé');
+    if (mounted) {
+      _loadUserRole();
+    }
   }
 
   Future<void> _loadUserRole() async {
@@ -134,6 +155,13 @@ class _ProfilePageState extends State<ProfilePage> {
     if (confirm == true) {
       await _authService.signOut();
       if (mounted) {
+        // Réinitialiser l'état complètement
+        setState(() {
+          _userRole = null;
+          _vendorRequestStatus = null;
+          _isLoadingRole = false;
+        });
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Row(
@@ -150,13 +178,14 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
         );
-        setState(() {});
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Important pour AutomaticKeepAliveClientMixin
+    
     final isAuthenticated = _authService.isAuthenticated;
     final userName = _authService.currentUserName ?? 'Utilisateur';
     final userPhone = _authService.currentUserPhone ?? '';
@@ -467,11 +496,18 @@ class _ProfilePageState extends State<ProfilePage> {
                         ],
                       ),
                       child: ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.push(
+                        onPressed: () async {
+                          final result = await Navigator.push(
                             context,
                             MaterialPageRoute(builder: (_) => const AuthPage()),
-                          ).then((_) => setState(() {}));
+                          );
+                          // Si connexion réussie, forcer un rebuild complet
+                          if (result == true && mounted) {
+                            setState(() {
+                              _isLoadingRole = true;
+                            });
+                            await _loadUserRole();
+                          }
                         },
                         icon: const Icon(Icons.login, size: 22),
                         label: const Text(

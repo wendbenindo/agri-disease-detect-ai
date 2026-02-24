@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl_phone_field/intl_phone_field.dart';
 import '../../services/vendor_service.dart';
 import '../../services/auth_service.dart';
 import '../auth/auth_page.dart';
@@ -24,6 +25,7 @@ class _BecomeVendorPageState extends State<BecomeVendorPage> {
   bool _isLoading = false;
   bool _hasExistingRequest = false;
   String? _existingRequestStatus;
+  String _completePhoneNumber = ''; // Numéro complet avec indicatif
 
   @override
   void initState() {
@@ -70,7 +72,7 @@ class _BecomeVendorPageState extends State<BecomeVendorPage> {
     try {
       await _vendorService.createVendorRequest(
         businessName: _businessNameController.text.trim(),
-        phone: _phoneController.text.trim(),
+        phone: _completePhoneNumber, // Utiliser le numéro complet
         city: _cityController.text.trim(),
         region: _regionController.text.trim(),
         description: _descriptionController.text.trim().isEmpty
@@ -242,19 +244,28 @@ class _BecomeVendorPageState extends State<BecomeVendorPage> {
 
             const SizedBox(height: 16),
 
-            // Téléphone
-            TextFormField(
+            // Téléphone avec sélecteur de pays
+            IntlPhoneField(
               controller: _phoneController,
               decoration: InputDecoration(
                 labelText: 'Téléphone *',
-                prefixIcon: const Icon(Icons.phone),
+                hintText: '70 00 00 00',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              keyboardType: TextInputType.phone,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
+              initialCountryCode: 'BF', // Burkina Faso par défaut
+              onChanged: (phone) {
+                _completePhoneNumber = phone.completeNumber;
+              },
+              invalidNumberMessage: 'Numéro invalide',
+              dropdownIconPosition: IconPosition.trailing,
+              flagsButtonPadding: const EdgeInsets.only(left: 12),
+              showCountryFlag: true,
+              showDropdownIcon: true,
+              dropdownTextStyle: const TextStyle(fontSize: 16),
+              validator: (phone) {
+                if (phone == null || phone.completeNumber.isEmpty) {
                   return 'Veuillez entrer votre numéro de téléphone';
                 }
                 return null;
