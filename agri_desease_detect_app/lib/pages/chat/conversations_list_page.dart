@@ -239,6 +239,7 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
             : null,
         onTap: () async {
           print('🔔 Ouverture conversation: ${conversation.id}');
+          print('👤 Current user ID: $currentUserId');
           
           // Ouvrir le chat
           await Navigator.push(
@@ -248,8 +249,9 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
             ),
           );
           
-          // Attendre un peu pour que la BD se mette à jour
-          await Future.delayed(const Duration(milliseconds: 800));
+          // Attendre plus longtemps pour que la BD se mette à jour
+          print('⏳ Attente de 1.5 secondes pour la mise à jour de la BD...');
+          await Future.delayed(const Duration(milliseconds: 1500));
           
           // Recharger les conversations après avoir fermé le chat
           print('🔄 Rechargement des conversations après fermeture du chat...');
