@@ -123,12 +123,35 @@ class _NavigationControllerState extends State<NavigationController> with Widget
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    
+    // Écouter les changements d'état d'authentification
+    _authService.authStateNotifier.addListener(_onAuthStateChanged);
+    
+    // Forcer un rebuild initial
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          _profileRebuildKey++;
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _authService.authStateNotifier.removeListener(_onAuthStateChanged);
     super.dispose();
+  }
+  
+  void _onAuthStateChanged() {
+    // Quand l'état d'authentification change, forcer un rebuild
+    print('🔔 NavigationController: État d\'authentification changé');
+    if (mounted) {
+      setState(() {
+        _profileRebuildKey++;
+      });
+    }
   }
 
   @override

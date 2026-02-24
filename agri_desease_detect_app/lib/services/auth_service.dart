@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 
 class AuthService {
   // Singleton pattern
@@ -19,6 +20,9 @@ class AuthService {
   String? _cachedUserPhone;
   String? _cachedUserName;
   String? _cachedUserRole;
+  
+  // Notifier pour informer les widgets des changements d'état
+  final ValueNotifier<bool> authStateNotifier = ValueNotifier<bool>(false);
 
   // Vérifier si l'utilisateur est authentifié
   bool get isAuthenticated => _cachedUserId != null;
@@ -49,11 +53,15 @@ class AuthService {
     _cachedUserName = prefs.getString(_userNameKey);
     _cachedUserRole = prefs.getString(_userRoleKey);
     
+    // Mettre à jour le notifier
+    authStateNotifier.value = _cachedUserId != null;
+    
     print('🔧 AuthService initialized:');
     print('   - userId: $_cachedUserId');
     print('   - phone: $_cachedUserPhone');
     print('   - name: $_cachedUserName');
     print('   - role: $_cachedUserRole');
+    print('   - authState: ${authStateNotifier.value}');
   }
 
   // Créer un nouveau compte (sans connexion automatique)
@@ -126,12 +134,16 @@ class AuthService {
       _cachedUserPhone = phoneNumber;
       _cachedUserName = name;
       _cachedUserRole = role;
+      
+      // Notifier les listeners du changement d'état
+      authStateNotifier.value = true;
 
       print('✅ Utilisateur connecté:');
       print('   - userId: $userId');
       print('   - phone: $phoneNumber');
       print('   - name: $name');
       print('   - role: $role');
+      print('   - authState notifié: true');
     } catch (e) {
       print('❌ Erreur loginAfterVerification: $e');
       throw Exception('Erreur lors de la connexion: $e');
@@ -190,6 +202,9 @@ class AuthService {
       _cachedUserPhone = userPhone;
       _cachedUserName = userName;
       _cachedUserRole = userRole;
+      
+      // Notifier les listeners du changement d'état
+      authStateNotifier.value = true;
 
       print('✅ Connexion réussie et sauvegardée:');
       print('   - userId: $userId');
@@ -197,6 +212,7 @@ class AuthService {
       print('   - name: $userName');
       print('   - role: $userRole');
       print('   - is_verified: $isVerified');
+      print('   - authState notifié: true');
 
       return {
         'id': userId,
@@ -223,7 +239,11 @@ class AuthService {
     _cachedUserName = null;
     _cachedUserRole = null;
     
+    // Notifier les listeners du changement d'état
+    authStateNotifier.value = false;
+    
     print('👋 Déconnexion effectuée');
+    print('   - authState notifié: false');
   }
 
   // Récupérer les infos d'un utilisateur par numéro de téléphone
