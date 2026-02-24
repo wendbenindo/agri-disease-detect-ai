@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../model/marketplace/product.dart';
 import '../../model/marketplace/vendor.dart';
 import '../../services/marketplace/product_repository.dart';
@@ -46,6 +47,37 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   String _formatPrice(double price) {
     final formatter = NumberFormat('#,###', 'fr_FR');
     return '${formatter.format(price)} FCFA';
+  }
+
+  Future<void> _shareProduct() async {
+    try {
+      final text = '''
+🌾 ${widget.product.name}
+
+💰 Prix: ${_formatPrice(widget.product.price)}
+
+📝 ${widget.product.description}
+
+${_vendor != null ? '🏪 Vendeur: ${_vendor!.name}\n📍 ${_vendor!.city}, ${_vendor!.region}' : ''}
+
+Partagé depuis TipTiga - Marketplace Agricole
+''';
+
+      await Share.share(
+        text,
+        subject: widget.product.name,
+      );
+    } catch (e) {
+      print('❌ Erreur partage: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur lors du partage: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _openChat() async {
@@ -205,11 +237,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 ),
                 child: IconButton(
                   icon: const Icon(Icons.share_outlined, color: Colors.black),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Partage en cours...')),
-                    );
-                  },
+                  onPressed: _shareProduct,
                 ),
               ),
             ],

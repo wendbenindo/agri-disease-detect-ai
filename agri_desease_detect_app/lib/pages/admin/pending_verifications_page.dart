@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../services/verification_service.dart';
 import '../../model/pending_verification.dart';
 
@@ -70,6 +71,82 @@ class _PendingVerificationsPageState extends State<PendingVerificationsPage> {
           duration: Duration(seconds: 2),
         ),
       );
+    }
+  }
+
+  Future<void> _sendViaSMS(PendingVerification verification) async {
+    final message = Uri.encodeComponent(
+      'TipTiga, code d\'activation: ${verification.code}\n'
+      'Valide pendant ${verification.hoursRemaining}h'
+    );
+    
+    final phoneNumber = verification.phoneNumber.replaceAll('+', '').replaceAll(' ', '');
+    final smsUrl = 'sms:$phoneNumber?body=$message';
+    
+    try {
+      final uri = Uri.parse(smsUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+        // Marquer comme envoyé après ouverture de l'app SMS
+        await _markAsSent(verification.userId);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('❌ Impossible d\'ouvrir l\'application SMS'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('❌ Erreur envoi SMS: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Erreur: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _sendViaWhatsApp(PendingVerification verification) async {
+    final message = Uri.encodeComponent(
+      'TipTiga, code d\'activation: ${verification.code}\n'
+      'Valide pendant ${verification.hoursRemaining}h'
+    );
+    
+    final phoneNumber = verification.phoneNumber.replaceAll('+', '').replaceAll(' ', '');
+    final whatsappUrl = 'https://wa.me/$phoneNumber?text=$message';
+    
+    try {
+      final uri = Uri.parse(whatsappUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        // Marquer comme envoyé après ouverture de WhatsApp
+        await _markAsSent(verification.userId);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('❌ Impossible d\'ouvrir WhatsApp'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('❌ Erreur envoi WhatsApp: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Erreur: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -345,25 +422,48 @@ class _PendingVerificationsPageState extends State<PendingVerificationsPage> {
             
             const SizedBox(height: 16),
             
-            // Bouton marquer comme envoyé
+            // Boutons d'envoi SMS/WhatsApp
             if (!verification.isSent)
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: isExpired
-                      ? null
-                      : () => _markAsSent(verification.userId),
-                  icon: const Icon(Icons.send, size: 18),
-                  label: const Text('Marquer comme envoyé'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+              Row(
+                children: [
+                  // Bouton SMS
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: isExpired
+                          ? null
+                          : () => _sendViaSMS(verification),
+                      icon: const Text('📱', style: TextStyle(fontSize: 18)),
+                      label: const Text('SMS'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                  const SizedBox(width: 12),
+                  // Bouton WhatsApp
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: isExpired
+                          ? null
+                          : () => _sendViaWhatsApp(verification),
+                      icon: const Text('💬', style: TextStyle(fontSize: 18)),
+                      label: const Text('WhatsApp'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               )
             else
               Container(

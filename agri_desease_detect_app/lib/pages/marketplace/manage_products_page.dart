@@ -3,6 +3,7 @@ import '../../model/marketplace/product.dart';
 import '../../services/marketplace/product_repository.dart';
 import '../../services/auth_service.dart';
 import 'add_product_page.dart';
+import 'edit_product_page.dart';
 
 class ManageProductsPage extends StatefulWidget {
   const ManageProductsPage({super.key});
@@ -210,14 +211,21 @@ class _ManageProductsPageState extends State<ManageProductsPage> {
                                 ),
                               ),
                             ],
-                            onSelected: (value) {
+                            onSelected: (value) async {
                               if (value == 'delete') {
                                 _deleteProduct(product);
                               } else if (value == 'edit') {
-                                // TODO: Page d'édition
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Édition à venir...')),
+                                final result = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => EditProductPage(product: product),
+                                  ),
                                 );
+                                
+                                // Recharger la liste si le produit a été modifié
+                                if (result == true) {
+                                  _loadMyProducts();
+                                }
                               }
                             },
                           ),

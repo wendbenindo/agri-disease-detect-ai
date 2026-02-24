@@ -163,4 +163,23 @@ class SupabaseProductDataSource {
       throw Exception('Erreur lors de la suppression du produit: $e');
     }
   }
+
+  // Modifier un produit
+  Future<void> updateProduct(Product product) async {
+    try {
+      await _client
+          .from('products')
+          .update({
+            'name': product.name,
+            'description': product.description,
+            'price': product.price,
+            'photo_url': product.photoUrl,
+            'dosage': product.dosage,
+            'instructions': product.instructions,
+          })
+          .eq('id', product.id);
+    } catch (e) {
+      throw Exception('Erreur lors de la modification du produit: $e');
+    }
+  }
 }

@@ -225,4 +225,22 @@ class ProductRepository {
       throw Exception('Erreur lors de la suppression du produit: $e');
     }
   }
+
+  // Modifier un produit (vendeurs uniquement)
+  Future<void> updateProduct(Product product) async {
+    final isOnline = await _isOnline();
+    
+    if (!isOnline) {
+      throw Exception('Connexion internet requise pour modifier un produit');
+    }
+
+    try {
+      await _remoteDataSource.updateProduct(product);
+
+      // Rafraîchir le cache
+      await syncAll();
+    } catch (e) {
+      throw Exception('Erreur lors de la modification du produit: $e');
+    }
+  }
 }
