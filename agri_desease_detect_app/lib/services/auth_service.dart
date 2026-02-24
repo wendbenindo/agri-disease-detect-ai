@@ -163,12 +163,19 @@ class AuthService {
       final userName = userData['user_name'] as String;
       final userPhone = userData['user_phone'] as String;
 
-      // Récupérer le rôle depuis la table users
+      // ⚠️ VÉRIFIER QUE L'UTILISATEUR EST VÉRIFIÉ
       final userInfo = await _supabase
           .from('users')
-          .select('role')
+          .select('role, is_verified')
           .eq('id', userId)
           .single();
+      
+      final isVerified = userInfo['is_verified'] as bool? ?? false;
+      
+      if (!isVerified) {
+        print('❌ Utilisateur non vérifié');
+        throw Exception('Votre compte n\'est pas encore vérifié. Veuillez vérifier votre numéro de téléphone.');
+      }
       
       final userRole = userInfo['role'] as String? ?? 'buyer';
 
@@ -189,6 +196,7 @@ class AuthService {
       print('   - phone: $userPhone');
       print('   - name: $userName');
       print('   - role: $userRole');
+      print('   - is_verified: $isVerified');
 
       return {
         'id': userId,

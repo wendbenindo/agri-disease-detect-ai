@@ -30,6 +30,13 @@ class _ProfilePageState extends State<ProfilePage> {
     _loadUserRole();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Recharger le rôle à chaque fois qu'on revient sur la page
+    _loadUserRole();
+  }
+
   Future<void> _loadUserRole() async {
     print('🔍 ProfilePage: _loadUserRole appelé');
     print('   - isAuthenticated: ${_authService.isAuthenticated}');
@@ -276,7 +283,7 @@ class _ProfilePageState extends State<ProfilePage> {
                               },
                             ),
                             
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 8),
                             
                             _buildActionButton(
                               icon: Icons.verified_user,
@@ -295,7 +302,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           
                           // Bouton Vendeur - Ajouter un produit
                           if (_userRole?.isVendor == true) ...[
-                            if (_userRole?.isAdmin == true) const SizedBox(height: 12),
+                            if (_userRole?.isAdmin == true) const SizedBox(height: 8),
                             _buildActionButton(
                               icon: Icons.add_business,
                               label: 'Ajouter un produit',
@@ -655,12 +662,12 @@ class _ProfilePageState extends State<ProfilePage> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.3),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+            color: color.withOpacity(0.25),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -668,21 +675,21 @@ class _ProfilePageState extends State<ProfilePage> {
         width: double.infinity,
         child: ElevatedButton.icon(
           onPressed: onTap,
-          icon: Icon(icon, size: 22),
+          icon: Icon(icon, size: 18),
           label: Text(
             label,
             style: const TextStyle(
-              fontSize: 15,
+              fontSize: 14,
               fontWeight: FontWeight.w600,
-              letterSpacing: 0.3,
+              letterSpacing: 0.2,
             ),
           ),
           style: ElevatedButton.styleFrom(
             backgroundColor: color,
             foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 16),
+            padding: const EdgeInsets.symmetric(vertical: 12),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
             ),
             elevation: 0,
           ),
