@@ -130,6 +130,7 @@ class _EditProductPageState extends State<EditProductPage> {
         title: const Text('Modifier le produit'),
         backgroundColor: Colors.green,
         foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

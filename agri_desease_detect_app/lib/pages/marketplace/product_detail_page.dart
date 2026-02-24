@@ -4,8 +4,10 @@ import 'package:share_plus/share_plus.dart';
 import '../../model/marketplace/product.dart';
 import '../../model/marketplace/vendor.dart';
 import '../../services/marketplace/product_repository.dart';
+import '../../services/marketplace/product_images_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/chat_service.dart';
+import '../../widgets/marketplace/image_carousel.dart';
 import '../auth/auth_page.dart';
 import '../chat/chat_page.dart';
 
@@ -20,16 +22,20 @@ class ProductDetailPage extends StatefulWidget {
 
 class _ProductDetailPageState extends State<ProductDetailPage> {
   final ProductRepository _repository = ProductRepository();
+  final ProductImagesService _imagesService = ProductImagesService();
   final AuthService _authService = AuthService();
   final ChatService _chatService = ChatService();
   Vendor? _vendor;
   bool _isLoadingVendor = true;
   bool _isFavorite = false;
+  List<String> _allImages = [];
+  bool _isLoadingImages = true;
 
   @override
   void initState() {
     super.initState();
     _loadVendor();
+    _loadImages();
   }
 
   Future<void> _loadVendor() async {
@@ -41,6 +47,35 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       });
     } else {
       setState(() => _isLoadingVendor = false);
+    }
+  }
+
+  Future<void> _loadImages() async {
+    try {
+      // Récupérer les images additionnelles
+      final additionalImages = await _imagesService.getProductImages(widget.product.id);
+      
+      // Combiner image principale + images additionnelles
+      final allImages = <String>[];
+      if (widget.product.photoUrl != null) {
+        allImages.add(widget.product.photoUrl!);
+      }
+      allImages.addAll(additionalImages);
+      
+      setState(() {
+        _allImages = allImages;
+        _isLoadingImages = false;
+      });
+      
+      print('📸 Images chargées: ${_allImages.length}');
+    } catch (e) {
+      print('❌ Erreur chargement images: $e');
+      setState(() {
+        _allImages = widget.product.photoUrl != null 
+            ? [widget.product.photoUrl!] 
+            : [];
+        _isLoadingImages = false;
+      });
     }
   }
 
@@ -244,17 +279,17 @@ Partagé depuis TipTiga - Marketplace Agricole
             flexibleSpace: FlexibleSpaceBar(
               background: Hero(
                 tag: 'product-${widget.product.id}',
-                child: Container(
-                  color: Colors.grey.shade50,
-                  child: widget.product.photoUrl != null
-                      ? Image.network(
-                          widget.product.photoUrl!,
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) =>
-                              _buildPlaceholderImage(),
-                        )
-                      : _buildPlaceholderImage(),
-                ),
+                child: _isLoadingImages
+                    ? Container(
+                        color: Colors.grey.shade50,
+                        child: const Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      )
+                    : ImageCarousel(
+                        imageUrls: _allImages,
+                        height: 300,
+                      ),
               ),
             ),
           ),

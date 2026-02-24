@@ -18,6 +18,12 @@ class ProductCard extends StatelessWidget {
     final formatter = NumberFormat('#,###', 'fr_FR');
     return '${formatter.format(price)} FCFA';
   }
+  
+  bool _isNewProduct() {
+    final now = DateTime.now();
+    final difference = now.difference(product.createdAt);
+    return difference.inDays < 7; // Nouveau si < 7 jours
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,6 +76,39 @@ class ProductCard extends StatelessWidget {
                                 )
                               : _buildPlaceholder(),
                         ),
+                        
+                        // Badge "NOUVEAU" (en haut à gauche)
+                        if (_isNewProduct())
+                          Positioned(
+                            top: 8,
+                            left: 8,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.orange,
+                                borderRadius: BorderRadius.circular(6),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.2),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: const Text(
+                                'NOUVEAU',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ),
                         
                         // Bouton de chat (en haut à droite)
                         if (onChatTap != null)

@@ -218,23 +218,20 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
           ],
         ),
         trailing: unreadCount > 0
-            ? SizedBox(
-                width: 40,
-                height: 40,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      unreadCount > 99 ? '99+' : '$unreadCount',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
+            ? Container(
+                width: 22,
+                height: 22,
+                decoration: const BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    unreadCount > 9 ? '9+' : '$unreadCount',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
@@ -242,17 +239,23 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
             : null,
         onTap: () async {
           print('🔔 Ouverture conversation: ${conversation.id}');
+          
+          // Ouvrir le chat
           await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (_) => ChatPage(conversation: conversation),
             ),
           );
-          // Recharger les conversations après avoir ouvert le chat
-          print('🔄 Rechargement des conversations...');
-          _loadConversations();
           
-          // Notifier le parent pour recharger le compteur
+          // Attendre un peu pour que la BD se mette à jour
+          await Future.delayed(const Duration(milliseconds: 800));
+          
+          // Recharger les conversations après avoir fermé le chat
+          print('🔄 Rechargement des conversations après fermeture du chat...');
+          await _loadConversations();
+          
+          // Notifier le parent pour recharger le compteur global
           widget.onConversationOpened?.call();
         },
       );

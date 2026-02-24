@@ -1,0 +1,61 @@
+═══════════════════════════════════════════════════════════
+                    RÉSUMÉ DE L'ERREUR 403
+═══════════════════════════════════════════════════════════
+
+SITUATION ACTUELLE :
+--------------------
+✅ Le bucket 'chat-images' existe
+✅ L'app peut se connecter à Supabase
+❌ Les politiques RLS bloquent l'upload (403 Unauthorized)
+
+
+CAUSE DU PROBLÈME :
+-------------------
+Les politiques de sécurité (RLS) ne sont pas correctement configurées.
+Supabase bloque l'upload par défaut pour protéger vos données.
+
+
+SOLUTION EN 3 CLICS :
+----------------------
+1. Ouvrir Supabase Dashboard → SQL Editor
+2. Copier/coller : supabase_fix_chat_images_policies.sql
+3. Cliquer "Run"
+
+⏱️ Temps : 1 minute
+📄 Fichier : supabase_fix_chat_images_policies.sql
+
+
+CE QUE LE SCRIPT FAIT :
+------------------------
+1. Supprime les anciennes politiques conflictuelles
+2. Crée 4 nouvelles politiques :
+   ✅ SELECT (lecture) : Public
+   ✅ INSERT (upload) : Utilisateurs authentifiés
+   ✅ UPDATE (modification) : Utilisateurs authentifiés
+   ✅ DELETE (suppression) : Utilisateurs authentifiés
+
+
+APRÈS EXÉCUTION :
+-----------------
+✅ Upload d'images : Fonctionne
+✅ Affichage : Fonctionne
+✅ Sécurité : Maintenue (seuls les connectés uploadent)
+
+
+POUR TESTER :
+-------------
+1. Ouvrir l'app
+2. Aller dans une conversation
+3. Cliquer sur 📷
+4. Sélectionner une image
+5. ✅ Devrait fonctionner !
+
+
+AIDE DÉTAILLÉE :
+----------------
+📖 FIX_ERREUR_403_CHAT_IMAGES.md
+
+
+═══════════════════════════════════════════════════════════
+        Exécutez le script SQL et c'est réglé ! 🚀
+═══════════════════════════════════════════════════════════

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../model/chat/conversation.dart';
 import '../../model/chat/message.dart';
 import '../../services/chat_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/storage_service.dart';
 
 class ChatPage extends StatefulWidget {
   final Conversation conversation;
@@ -16,18 +18,31 @@ class ChatPage extends StatefulWidget {
 class _ChatPageState extends State<ChatPage> {
   final ChatService _chatService = ChatService();
   final AuthService _authService = AuthService();
+  final StorageService _storageService = StorageService();
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final ImagePicker _imagePicker = ImagePicker();
   
   List<Message> _messages = [];
   bool _isLoading = true;
   bool _isSending = false;
+  bool _isUploadingImage = false;
 
   @override
   void initState() {
     super.initState();
     _loadMessages();
+    // Marquer comme lu immédiatement à l'ouverture
     _markAsRead();
+  }
+  
+  @override
+  void dispose() {
+    // Marquer comme lu aussi à la fermeture pour être sûr
+    _markAsRead();
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadMessages() async {
@@ -52,9 +67,14 @@ class _ChatPageState extends State<ChatPage> {
     try {
       final userId = _authService.currentUserId;
       if (userId != null) {
+        print('🔔 ChatPage: Marquage des messages comme lus...');
         await _chatService.markAsRead(widget.conversation.id, userId);
+        print('✅ ChatPage: Messages marqués comme lus');
+      } else {
+        print('❌ ChatPage: userId est null, impossible de marquer comme lu');
       }
     } catch (e) {
+      print('❌ ChatPage: Erreur _markAsRead: $e');
       // Ignorer les erreurs
     }
   }
@@ -84,6 +104,52 @@ class _ChatPageState extends State<ChatPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erreur: $e')),
+        );
+      }
+    }
+  }
+  
+  Future<void> _pickAndSendImage() async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      
+      if (image == null) return;
+      
+      setState(() => _isUploadingImage = true);
+      
+      // Upload l'image dans le bucket chat-images
+      final imageUrl = await _storageService.uploadChatImage(
+        image.path,
+        widget.conversation.id,
+      );
+      
+      // Envoyer le message avec l'image
+      final userId = _authService.currentUserId!;
+      final message = await _chatService.sendMessage(
+        conversationId: widget.conversation.id,
+        senderId: userId,
+        content: '📷 Photo',
+        imageUrl: imageUrl,
+      );
+      
+      setState(() {
+        _messages.add(message);
+        _isUploadingImage = false;
+      });
+      _scrollToBottom();
+    } catch (e) {
+      setState(() => _isUploadingImage = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur lors de l\'envoi de l\'image: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -182,6 +248,22 @@ class _ChatPageState extends State<ChatPage> {
             ),
             child: Row(
               children: [
+                // Bouton pour uploader une image
+                IconButton(
+                  icon: _isUploadingImage
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.green,
+                          ),
+                        )
+                      : const Icon(Icons.image, color: Colors.green),
+                  onPressed: _isUploadingImage ? null : _pickAndSendImage,
+                  tooltip: 'Envoyer une photo',
+                ),
+                const SizedBox(width: 8),
                 Expanded(
                   child: TextField(
                     controller: _messageController,
@@ -290,12 +372,5 @@ class _ChatPageState extends State<ChatPage> {
     } else {
       return '${dateTime.day}/${dateTime.month}';
     }
-  }
-
-  @override
-  void dispose() {
-    _messageController.dispose();
-    _scrollController.dispose();
-    super.dispose();
   }
 }

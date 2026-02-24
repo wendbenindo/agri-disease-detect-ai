@@ -76,6 +76,20 @@ class _MarketplacePageState extends State<MarketplacePage> {
 
         return matchesCategory;
       }).toList();
+      
+      // Trier les produits : nouveaux en premier (< 7 jours), puis par date décroissante
+      _filteredProducts.sort((a, b) {
+        final now = DateTime.now();
+        final aIsNew = now.difference(a.createdAt).inDays < 7;
+        final bIsNew = now.difference(b.createdAt).inDays < 7;
+        
+        // Si l'un est nouveau et pas l'autre, le nouveau vient en premier
+        if (aIsNew && !bIsNew) return -1;
+        if (!aIsNew && bIsNew) return 1;
+        
+        // Sinon, trier par date décroissante (plus récent en premier)
+        return b.createdAt.compareTo(a.createdAt);
+      });
     });
   }
 
@@ -96,8 +110,12 @@ class _MarketplacePageState extends State<MarketplacePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Marketplace'),
+        backgroundColor: Colors.green,
+        foregroundColor: Colors.white,
+        title: const Text('TipTiga Market'),
+        elevation: 0,
       ),
       body: Column(
         children: [

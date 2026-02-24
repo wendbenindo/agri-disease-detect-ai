@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../services/marketplace/product_repository.dart';
+import '../../services/marketplace/product_images_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/storage_service.dart';
 
@@ -23,6 +24,7 @@ class _AddProductPageState extends State<AddProductPage> {
   final _photoUrlController = TextEditingController();
   
   final ProductRepository _repository = ProductRepository();
+  final ProductImagesService _imagesService = ProductImagesService();
   final AuthService _authService = AuthService();
   final StorageService _storageService = StorageService();
   final ImagePicker _imagePicker = ImagePicker();
@@ -33,6 +35,7 @@ class _AddProductPageState extends State<AddProductPage> {
   bool _isLoadingCategories = true;
   bool _isUploadingImage = false;
   File? _selectedImage;
+  List<File> _additionalImages = []; // Images additionnelles
 
   @override
   void initState() {
@@ -101,6 +104,53 @@ class _AddProductPageState extends State<AddProductPage> {
     }
   }
 
+  /// Sélectionner plusieurs images additionnelles
+  Future<void> _pickAdditionalImages() async {
+    try {
+      final List<XFile> images = await _imagePicker.pickMultiImage(
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+
+      if (images.isEmpty) return;
+
+      // Limiter à 5 images additionnelles maximum
+      final imagesToAdd = images.take(5 - _additionalImages.length).toList();
+
+      setState(() {
+        _additionalImages.addAll(
+          imagesToAdd.map((xfile) => File(xfile.path)),
+        );
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ ${imagesToAdd.length} image(s) ajoutée(s)'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Erreur sélection: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Supprimer une image additionnelle
+  void _removeAdditionalImage(int index) {
+    setState(() {
+      _additionalImages.removeAt(index);
+    });
+  }
+
   Future<void> _saveProduct() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCategoryId == null) {
@@ -115,7 +165,8 @@ class _AddProductPageState extends State<AddProductPage> {
     try {
       final vendorId = _authService.currentUserId!;
       
-      await _repository.addProduct(
+      // Créer le produit
+      final product = await _repository.addProduct(
         name: _nameController.text.trim(),
         description: _descriptionController.text.trim(),
         price: double.parse(_priceController.text.trim()),
@@ -131,6 +182,16 @@ class _AddProductPageState extends State<AddProductPage> {
             ? null 
             : _instructionsController.text.trim(),
       );
+
+      // Uploader les images additionnelles si présentes
+      if (_additionalImages.isNotEmpty) {
+        print('📤 Upload de ${_additionalImages.length} images additionnelles...');
+        await _imagesService.uploadAdditionalImages(
+          product.id,
+          _additionalImages,
+        );
+        print('✅ Images additionnelles uploadées');
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -158,7 +219,10 @@ class _AddProductPageState extends State<AddProductPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.green,
+        foregroundColor: Colors.white,
         title: const Text('Ajouter un produit'),
+        elevation: 0,
       ),
       body: _isLoadingCategories
           ? const Center(child: CircularProgressIndicator())
@@ -343,6 +407,126 @@ class _AddProductPageState extends State<AddProductPage> {
                               ),
                             ),
                           ],
+                        ],
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // Images additionnelles
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.photo_library, color: Colors.green.shade700),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Images additionnelles',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const Spacer(),
+                              Text(
+                                '${_additionalImages.length}/5',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Ajoutez jusqu\'à 5 images supplémentaires',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                          
+                          // Grille d'aperçu des images
+                          if (_additionalImages.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 3,
+                                crossAxisSpacing: 8,
+                                mainAxisSpacing: 8,
+                              ),
+                              itemCount: _additionalImages.length,
+                              itemBuilder: (context, index) {
+                                return Stack(
+                                  children: [
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(8),
+                                        image: DecorationImage(
+                                          image: FileImage(_additionalImages[index]),
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                    ),
+                                    Positioned(
+                                      top: 4,
+                                      right: 4,
+                                      child: GestureDetector(
+                                        onTap: () => _removeAdditionalImage(index),
+                                        child: Container(
+                                          padding: const EdgeInsets.all(4),
+                                          decoration: const BoxDecoration(
+                                            color: Colors.red,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            Icons.close,
+                                            size: 16,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                          ],
+                          
+                          const SizedBox(height: 12),
+                          
+                          // Bouton ajouter images
+                          OutlinedButton.icon(
+                            onPressed: _additionalImages.length >= 5
+                                ? null
+                                : _pickAdditionalImages,
+                            icon: const Icon(Icons.add_photo_alternate),
+                            label: Text(
+                              _additionalImages.isEmpty
+                                  ? 'Ajouter des images'
+                                  : 'Ajouter plus d\'images',
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              side: BorderSide(
+                                color: _additionalImages.length >= 5
+                                    ? Colors.grey.shade300
+                                    : Colors.green.shade700,
+                              ),
+                              foregroundColor: _additionalImages.length >= 5
+                                  ? Colors.grey.shade400
+                                  : Colors.green.shade700,
+                            ),
+                          ),
                         ],
                       ),
                     ),

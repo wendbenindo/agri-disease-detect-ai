@@ -97,7 +97,10 @@ class _ManageProductsPageState extends State<ManageProductsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.green,
+        foregroundColor: Colors.white,
         title: const Text('Mes Produits'),
+        elevation: 0,
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {

@@ -156,11 +156,24 @@ class ChatService {
 
   // Marquer les messages comme lus
   Future<void> markAsRead(String conversationId, String userId) async {
-    await _client
-        .from('messages')
-        .update({'is_read': true})
-        .eq('conversation_id', conversationId)
-        .neq('sender_id', userId);
+    try {
+      print('📖 Marquage des messages comme lus...');
+      print('   - conversationId: $conversationId');
+      print('   - userId: $userId');
+      
+      final result = await _client
+          .from('messages')
+          .update({'is_read': true})
+          .eq('conversation_id', conversationId)
+          .neq('sender_id', userId)
+          .select();
+      
+      print('✅ Messages marqués comme lus: ${result.length} messages');
+    } catch (e, stackTrace) {
+      print('❌ Erreur markAsRead: $e');
+      print('Stack: $stackTrace');
+      // Ne pas rethrow pour ne pas bloquer l'ouverture du chat
+    }
   }
 }
 

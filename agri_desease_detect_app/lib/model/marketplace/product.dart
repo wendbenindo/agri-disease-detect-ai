@@ -4,7 +4,8 @@ class Product {
   final double price;
   final String description;
   final String? shortDescription;
-  final String? photoUrl;
+  final String? photoUrl; // Image principale
+  final List<String> additionalImages; // Images additionnelles
   final String? categoryId;
   final String? vendorId;
   final String? dosage;
@@ -12,6 +13,14 @@ class Product {
   final bool isAvailable;
   final DateTime createdAt;
   final DateTime updatedAt;
+  
+  // Obtenir toutes les images (principale + additionnelles)
+  List<String> get allImages {
+    final images = <String>[];
+    if (photoUrl != null) images.add(photoUrl!);
+    images.addAll(additionalImages);
+    return images;
+  }
 
   Product({
     required this.id,
@@ -20,6 +29,7 @@ class Product {
     required this.description,
     this.shortDescription,
     this.photoUrl,
+    this.additionalImages = const [],
     this.categoryId,
     this.vendorId,
     this.dosage,
@@ -30,6 +40,16 @@ class Product {
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
+    // Parser les images additionnelles si elles existent
+    List<String> additionalImages = [];
+    if (json['additional_images'] != null) {
+      if (json['additional_images'] is List) {
+        additionalImages = (json['additional_images'] as List)
+            .map((e) => e.toString())
+            .toList();
+      }
+    }
+    
     return Product(
       id: json['id'] as String,
       name: json['name'] as String,
@@ -37,6 +57,7 @@ class Product {
       description: json['description'] as String,
       shortDescription: json['short_description'] as String?,
       photoUrl: json['photo_url'] as String?,
+      additionalImages: additionalImages,
       categoryId: json['category_id'] as String?,
       vendorId: json['vendor_id'] as String?,
       dosage: json['dosage'] as String?,
@@ -55,6 +76,7 @@ class Product {
       'description': description,
       'short_description': shortDescription,
       'photo_url': photoUrl,
+      'additional_images': additionalImages,
       'category_id': categoryId,
       'vendor_id': vendorId,
       'dosage': dosage,
@@ -72,6 +94,7 @@ class Product {
     String? description,
     String? shortDescription,
     String? photoUrl,
+    List<String>? additionalImages,
     String? categoryId,
     String? vendorId,
     String? dosage,
@@ -87,6 +110,7 @@ class Product {
       description: description ?? this.description,
       shortDescription: shortDescription ?? this.shortDescription,
       photoUrl: photoUrl ?? this.photoUrl,
+      additionalImages: additionalImages ?? this.additionalImages,
       categoryId: categoryId ?? this.categoryId,
       vendorId: vendorId ?? this.vendorId,
       dosage: dosage ?? this.dosage,

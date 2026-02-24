@@ -1,0 +1,54 @@
+╔════════════════════════════════════════════════════════════════╗
+║                    ⚠️  ACTION REQUISE  ⚠️                      ║
+╚════════════════════════════════════════════════════════════════╝
+
+PROBLÈME DÉTECTÉ :
+------------------
+❌ Erreur : 403 Unauthorized (RLS Policy Violation)
+❌ Les politiques RLS bloquent l'upload d'images
+❌ L'envoi d'images dans le chat ne fonctionne pas
+
+
+SOLUTION RAPIDE (1 minute) :
+------------------------------
+
+ÉTAPES :
+1. Ouvrir https://supabase.com/dashboard
+2. Aller dans "SQL Editor"
+3. Copier le contenu de : supabase_fix_chat_images_policies.sql
+4. Coller et exécuter (Run)
+5. Terminé !
+
+
+GUIDE DÉTAILLÉ :
+----------------
+📖 Voir le fichier : FIX_ERREUR_403_CHAT_IMAGES.md
+
+
+APRÈS CORRECTION :
+------------------
+✅ L'upload d'images fonctionnera
+✅ Les utilisateurs authentifiés pourront envoyer des photos
+✅ Les images seront visibles par tous
+✅ Sécurité : Seuls les connectés peuvent uploader
+
+
+VÉRIFICATION :
+--------------
+Pour vérifier que c'est bon :
+1. Ouvrir une conversation
+2. Cliquer sur l'icône 📷
+3. Sélectionner une image
+4. L'image devrait s'uploader sans erreur 403
+
+
+FICHIERS UTILES :
+-----------------
+📄 supabase_fix_chat_images_policies.sql  → Script de correction (URGENT)
+📄 FIX_ERREUR_403_CHAT_IMAGES.md         → Guide détaillé
+📄 supabase_create_chat_images_bucket.sql → Script complet (si besoin)
+
+
+╔════════════════════════════════════════════════════════════════╗
+║  Exécutez le script SQL et tout fonctionnera ! ✨              ║
+╚════════════════════════════════════════════════════════════════╝
