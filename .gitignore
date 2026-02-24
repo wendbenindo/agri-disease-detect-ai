@@ -69,3 +69,10 @@ FIX_RETOUR_VERIFICATION.md
 INSTALL_SELECTEUR_PAYS.md
 SELECTEUR_PAYS_TELEPHONE.md
 ACCES_PANEL_ADMIN_VERIFICATIONS.md
+CORRECTION_CODES_VERIFICATION.md
+CORRECTION_VENDOR_FUNCTIONS.md
+fix_pending_verifications_view.sql
+SOLUTION_SIMPLE_CODE.md
+supabase_check_vendor_functions.sql
+supabase_vendor_functions.sql
+supabase_verification_functions.sql

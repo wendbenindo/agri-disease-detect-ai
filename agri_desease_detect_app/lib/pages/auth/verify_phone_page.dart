@@ -83,9 +83,11 @@ class _VerifyPhonePageState extends State<VerifyPhonePage> {
 
           // Rediriger vers la page principale
           if (mounted) {
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (_) => const NavigationController()),
+            // Forcer un rebuild complet en remplaçant toute la pile de navigation
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(
+                builder: (_) => const NavigationController(),
+              ),
               (route) => false,
             );
           }
@@ -129,7 +131,7 @@ class _VerifyPhonePageState extends State<VerifyPhonePage> {
         ),
       ),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -299,7 +301,7 @@ class _VerifyPhonePageState extends State<VerifyPhonePage> {
                 ),
               ),
               
-              const Spacer(),
+              const SizedBox(height: 24),
               
               // Info expiration
               Center(
@@ -311,6 +313,8 @@ class _VerifyPhonePageState extends State<VerifyPhonePage> {
                   ),
                 ),
               ),
+              
+              const SizedBox(height: 40),
             ],
           ),
         ),

@@ -31,13 +31,6 @@ class _ProfilePageState extends State<ProfilePage> with AutomaticKeepAliveClient
   void initState() {
     super.initState();
     _loadUserRole();
-    
-    // Écouter les changements d'état de l'app pour recharger si nécessaire
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _loadUserRole();
-      }
-    });
   }
 
   @override
@@ -46,16 +39,6 @@ class _ProfilePageState extends State<ProfilePage> with AutomaticKeepAliveClient
     // Recharger quand le widget est mis à jour
     print('🔄 ProfilePage: didUpdateWidget appelé');
     _loadUserRole();
-  }
-  
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Recharger aussi quand les dépendances changent
-    print('🔄 ProfilePage: didChangeDependencies appelé');
-    if (mounted) {
-      _loadUserRole();
-    }
   }
 
   Future<void> _loadUserRole() async {

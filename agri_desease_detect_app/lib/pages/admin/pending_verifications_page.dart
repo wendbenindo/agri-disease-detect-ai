@@ -34,7 +34,11 @@ class _PendingVerificationsPageState extends State<PendingVerificationsPage> {
         _pendingVerifications = data
             .map((json) {
               try {
-                return PendingVerification.fromJson(json);
+                final verification = PendingVerification.fromJson(json);
+                print('✅ Vérification créée:');
+                print('   - User: ${verification.userName}');
+                print('   - Code final affiché: ${verification.code}');
+                return verification;
               } catch (e) {
                 print('❌ Erreur parsing vérification: $e');
                 print('   JSON: $json');

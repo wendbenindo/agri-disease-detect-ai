@@ -114,6 +114,13 @@ class VerificationService {
           .select()
           .order('created_at', ascending: false);
 
+      print('📋 Codes récupérés de la BD:');
+      for (var item in response) {
+        print('   - User: ${item['user_name']}');
+        print('   - Code BD: ${item['code']}');
+        print('   - Type code: ${item['code'].runtimeType}');
+      }
+
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       print('❌ Erreur getPendingVerifications: $e');

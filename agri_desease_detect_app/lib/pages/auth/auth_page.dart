@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import '../../services/auth_service.dart';
 import 'choose_verification_method_page.dart';
+import 'verify_phone_page.dart';
 import 'pending_verification_page.dart';
 
 class AuthPage extends StatefulWidget {
@@ -64,7 +65,7 @@ class _AuthPageState extends State<AuthPage> {
               child: Icon(
                 Icons.verified_user,
                 color: Colors.orange.shade700,
-                size: 24,
+                size: 20,
               ),
             ),
             const SizedBox(width: 12),
@@ -72,58 +73,60 @@ class _AuthPageState extends State<AuthPage> {
               child: Text(
                 'Vérification requise',
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
               ),
             ),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Votre compte n\'est pas encore vérifié.',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Votre compte n\'est pas encore vérifié.',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Pour des raisons de sécurité, vous devez vérifier votre numéro de téléphone avant de pouvoir vous connecter.',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade700,
-                height: 1.5,
+              const SizedBox(height: 8),
+              Text(
+                'Un code de vérification a déjà été généré pour vous. Entrez-le pour activer votre compte.',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey.shade700,
+                  height: 1.4,
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.blue.shade200),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Un code de vérification a été généré pour vous',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.blue.shade900,
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.blue.shade700, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Le code est valide pendant 24 heures',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.blue.shade900,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -133,6 +136,7 @@ class _AuthPageState extends State<AuthPage> {
               style: TextStyle(
                 color: Colors.grey.shade700,
                 fontWeight: FontWeight.w600,
+                fontSize: 13,
               ),
             ),
           ),
@@ -151,15 +155,16 @@ class _AuthPageState extends State<AuthPage> {
                   // Attendre un peu pour que le dialogue se ferme
                   await Future.delayed(const Duration(milliseconds: 100));
                   
-                  // Rediriger vers la page de vérification
+                  // Rediriger DIRECTEMENT vers la page de vérification (pas le choix du canal)
                   if (mounted) {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => ChooseVerificationMethodPage(
+                        builder: (_) => VerifyPhonePage(
                           userId: userInfo['id'],
                           phoneNumber: userInfo['phone_number'],
                           userName: userInfo['name'],
+                          verificationMethod: 'sms', // Peu importe, le code existe déjà
                         ),
                       ),
                     );
@@ -199,19 +204,19 @@ class _AuthPageState extends State<AuthPage> {
                 }
               }
             },
-            icon: const Icon(Icons.verified_user, size: 18),
+            icon: const Icon(Icons.verified_user, size: 16),
             label: const Text(
-              'Vérifier maintenant',
-              style: TextStyle(fontWeight: FontWeight.w600),
+              'Entrer le code',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.orange,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(8),
               ),
               elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             ),
           ),
         ],
