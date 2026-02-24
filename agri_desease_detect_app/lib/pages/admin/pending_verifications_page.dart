@@ -25,15 +25,37 @@ class _PendingVerificationsPageState extends State<PendingVerificationsPage> {
     setState(() => _isLoading = true);
     
     try {
+      print('📋 Chargement des vérifications en attente...');
       final data = await _verificationService.getPendingVerifications();
+      print('✅ Données reçues: ${data.length} vérifications');
+      
       setState(() {
         _pendingVerifications = data
-            .map((json) => PendingVerification.fromJson(json))
+            .map((json) {
+              try {
+                return PendingVerification.fromJson(json);
+              } catch (e) {
+                print('❌ Erreur parsing vérification: $e');
+                print('   JSON: $json');
+                return null;
+              }
+            })
+            .whereType<PendingVerification>() // Filtrer les null
             .toList();
         _isLoading = false;
       });
+      
+      print('✅ ${_pendingVerifications.length} vérifications chargées');
     } catch (e) {
       print('❌ Erreur chargement: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
       setState(() => _isLoading = false);
     }
   }

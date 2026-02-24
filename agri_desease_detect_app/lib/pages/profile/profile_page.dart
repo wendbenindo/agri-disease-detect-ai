@@ -5,6 +5,7 @@ import '../../model/user_role.dart';
 import '../auth/auth_page.dart';
 import '../vendor/become_vendor_page.dart';
 import '../admin/vendor_requests_page.dart';
+import '../admin/pending_verifications_page.dart';
 import '../marketplace/add_product_page.dart';
 import '../marketplace/manage_products_page.dart';
 
@@ -260,10 +261,10 @@ class _ProfilePageState extends State<ProfilePage> {
                       child: Column(
                         children: [
                           // Bouton Admin
-                          if (_userRole?.isAdmin == true)
+                          if (_userRole?.isAdmin == true) ...[
                             _buildActionButton(
                               icon: Icons.admin_panel_settings,
-                              label: 'Panel Administrateur',
+                              label: 'Demandes vendeurs',
                               color: Colors.purple,
                               onTap: () {
                                 Navigator.push(
@@ -274,6 +275,23 @@ class _ProfilePageState extends State<ProfilePage> {
                                 );
                               },
                             ),
+                            
+                            const SizedBox(height: 12),
+                            
+                            _buildActionButton(
+                              icon: Icons.verified_user,
+                              label: 'Vérifications en attente',
+                              color: Colors.orange,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const PendingVerificationsPage(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
                           
                           // Bouton Vendeur - Ajouter un produit
                           if (_userRole?.isVendor == true) ...[

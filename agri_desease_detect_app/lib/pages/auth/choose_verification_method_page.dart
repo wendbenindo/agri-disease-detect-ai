@@ -29,6 +29,12 @@ class _ChooseVerificationMethodPageState
     setState(() => _isLoading = true);
 
     try {
+      // Sauvegarder les infos temporairement (pour pouvoir revenir)
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('temp_verification_user_id', widget.userId);
+      await prefs.setString('temp_verification_phone', widget.phoneNumber);
+      await prefs.setString('temp_verification_name', widget.userName);
+      
       // Créer le code de vérification
       final code = await _verificationService.createVerificationCode(
         userId: widget.userId,

@@ -21,13 +21,17 @@ class PendingVerification {
 
   factory PendingVerification.fromJson(Map<String, dynamic> json) {
     return PendingVerification(
-      userId: json['user_id'] as String,
-      userName: json['user_name'] as String,
-      phoneNumber: json['phone_number'] as String,
-      code: json['code'] as String,
-      verificationMethod: json['verification_method'] as String,
-      expiresAt: DateTime.parse(json['expires_at'] as String),
-      createdAt: DateTime.parse(json['created_at'] as String),
+      userId: json['user_id']?.toString() ?? '',
+      userName: json['user_name']?.toString() ?? 'Utilisateur',
+      phoneNumber: json['phone_number']?.toString() ?? '',
+      code: json['code']?.toString() ?? '',
+      verificationMethod: json['verification_method']?.toString() ?? 'sms',
+      expiresAt: json['expires_at'] != null 
+          ? DateTime.parse(json['expires_at'] as String)
+          : DateTime.now().add(const Duration(hours: 24)),
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : DateTime.now(),
       isSent: json['is_sent'] as bool? ?? false,
     );
   }

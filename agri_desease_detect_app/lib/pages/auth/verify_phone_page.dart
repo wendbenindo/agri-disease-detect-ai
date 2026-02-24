@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/verification_service.dart';
 import '../../services/auth_service.dart';
 import '../../main.dart';
@@ -55,6 +56,12 @@ class _VerifyPhonePageState extends State<VerifyPhonePage> {
       );
 
       if (isValid && mounted) {
+        // Supprimer les infos temporaires
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('temp_verification_user_id');
+        await prefs.remove('temp_verification_phone');
+        await prefs.remove('temp_verification_name');
+        
         // Connecter l'utilisateur automatiquement après vérification
         await _authService.loginAfterVerification(
           userId: widget.userId,

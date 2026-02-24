@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl_phone_field/intl_phone_field.dart';
 import '../../services/auth_service.dart';
 import 'choose_verification_method_page.dart';
+import 'pending_verification_page.dart';
 
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
@@ -20,6 +23,27 @@ class _AuthPageState extends State<AuthPage> {
   bool _isLoading = false;
   bool _isSignUp = true; // true = Créer compte, false = Se connecter
   bool _obscurePassword = true;
+  String _completePhoneNumber = ''; // Numéro complet avec indicatif
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPendingVerification();
+  }
+
+  Future<void> _checkPendingVerification() async {
+    // Vérifier s'il y a une vérification en attente
+    final prefs = await SharedPreferences.getInstance();
+    final tempUserId = prefs.getString('temp_verification_user_id');
+    
+    if (tempUserId != null && mounted) {
+      // Il y a une vérification en attente, rediriger
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const PendingVerificationPage()),
+      );
+    }
+  }
 
   @override
   void dispose() {
@@ -39,7 +63,7 @@ class _AuthPageState extends State<AuthPage> {
         // Créer un nouveau compte
         print('📝 Création de compte...');
         final result = await _authService.signUp(
-          phoneNumber: _phoneController.text.trim(),
+          phoneNumber: _completePhoneNumber, // Utiliser le numéro complet
           name: _nameController.text.trim(),
           password: _passwordController.text,
         );
@@ -67,7 +91,7 @@ class _AuthPageState extends State<AuthPage> {
         // Se connecter
         print('🔐 Connexion...');
         final result = await _authService.signIn(
-          phoneNumber: _phoneController.text.trim(),
+          phoneNumber: _completePhoneNumber, // Utiliser le numéro complet
           password: _passwordController.text,
         );
         print('✅ Connecté: $result');
@@ -164,36 +188,29 @@ class _AuthPageState extends State<AuthPage> {
                   const SizedBox(height: 20),
                 ],
                 
-                // Champ Téléphone
-                TextFormField(
+                // Champ Téléphone avec sélecteur de pays
+                IntlPhoneField(
                   controller: _phoneController,
                   decoration: InputDecoration(
                     labelText: 'Numéro de téléphone',
-                    hintText: '+226 XX XX XX XX',
-                    prefixIcon: const Icon(Icons.phone),
+                    hintText: '70 00 00 00',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     filled: true,
                     fillColor: Colors.grey.shade50,
                   ),
-                  keyboardType: TextInputType.phone,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'[0-9+\s]')),
-                  ],
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Veuillez entrer votre numéro';
-                    }
-                    final cleaned = value.replaceAll(RegExp(r'\s'), '');
-                    if (!cleaned.startsWith('+')) {
-                      return 'Le numéro doit commencer par + (ex: +226)';
-                    }
-                    if (cleaned.length < 10) {
-                      return 'Numéro invalide';
-                    }
-                    return null;
+                  initialCountryCode: 'BF', // Burkina Faso par défaut
+                  onChanged: (phone) {
+                    _completePhoneNumber = phone.completeNumber;
+                    print('📱 Numéro complet: $_completePhoneNumber');
                   },
+                  invalidNumberMessage: 'Numéro invalide',
+                  dropdownIconPosition: IconPosition.trailing,
+                  flagsButtonPadding: const EdgeInsets.only(left: 12),
+                  showCountryFlag: true,
+                  showDropdownIcon: true,
+                  dropdownTextStyle: const TextStyle(fontSize: 16),
                 ),
                 
                 const SizedBox(height: 20),
