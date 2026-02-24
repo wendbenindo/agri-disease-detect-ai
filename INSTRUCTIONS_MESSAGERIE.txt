@@ -1,0 +1,94 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    CORRECTION DU SYSTÈME DE MESSAGERIE                       ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+📋 PROBLÈMES CORRIGÉS :
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Badge rouge avec compteur sur l'onglet Messages
+✅ "Commencer la conversation" au lieu de "Aucun message"
+✅ Compteur de messages non lus par utilisateur (buyer/vendor)
+✅ Marquage automatique des messages comme lus
+✅ Mise à jour en temps réel du compteur
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔧 ÉTAPE 1 : EXÉCUTER LE SCRIPT SQL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Ouvrez Supabase Dashboard : https://supabase.com/dashboard
+2. Sélectionnez votre projet
+3. Cliquez sur "SQL Editor" dans le menu de gauche
+4. Cliquez sur "New query"
+5. Copiez TOUT le contenu du fichier : supabase_fix_messagerie.sql
+6. Collez dans l'éditeur SQL
+7. Cliquez sur "Run" (ou appuyez sur Ctrl+Enter)
+8. Vérifiez qu'il n'y a pas d'erreur
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📱 ÉTAPE 2 : TESTER L'APPLICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Lancez l'application Flutter
+2. Connectez-vous avec un compte vendeur
+3. Publiez un produit
+4. Connectez-vous avec un compte acheteur (autre téléphone ou émulateur)
+5. Contactez le vendeur via le produit
+6. Envoyez un message
+7. Retournez sur le compte vendeur
+8. Vérifiez que :
+   ✓ Un badge rouge (1) apparaît sur l'onglet Messages
+   ✓ La conversation affiche le message
+   ✓ Quand vous ouvrez la conversation, le badge disparaît
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 RÉSULTAT ATTENDU
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+AVANT :
+  Messages (onglet)  →  Pas de badge
+  Liste conversations  →  "Aucun message" même avec des messages
+  Pas de compteur de messages non lus
+
+APRÈS :
+  Messages (onglet)  →  Badge rouge avec nombre (ex: 3)
+  Liste conversations  →  "Commencer la conversation" si pas de messages
+  Badge rouge sur chaque conversation avec messages non lus
+  Compteur se met à jour automatiquement
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📝 NOTES IMPORTANTES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• Le compteur est calculé côté serveur (performant)
+• Chaque utilisateur a son propre compteur (buyer ≠ vendor)
+• Le badge se met à jour automatiquement
+• Les messages sont marqués comme lus dès l'ouverture de la conversation
+• Si vous avez plus de 99 messages non lus, le badge affiche "99+"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+❓ EN CAS DE PROBLÈME
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Si le badge ne s'affiche pas :
+  1. Vérifiez que le script SQL a été exécuté sans erreur
+  2. Redémarrez l'application Flutter (hot restart)
+  3. Vérifiez les logs dans la console
+
+Si "Aucun message" s'affiche toujours :
+  1. Vérifiez que la vue conversations_with_details existe dans Supabase
+  2. Exécutez : SELECT * FROM conversations_with_details;
+  3. Vérifiez que les colonnes unread_count_buyer et unread_count_vendor existent
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📚 DOCUMENTATION COMPLÈTE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Voir le fichier CORRECTION_MESSAGERIE.md pour plus de détails techniques.
+
+╚══════════════════════════════════════════════════════════════════════════════╝

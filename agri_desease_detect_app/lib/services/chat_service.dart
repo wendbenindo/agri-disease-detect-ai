@@ -81,6 +81,22 @@ class ChatService {
       rethrow;
     }
   }
+  
+  // Compter le nombre total de messages non lus pour un utilisateur
+  Future<int> getTotalUnreadCount(String userId) async {
+    try {
+      final conversations = await getUserConversations(userId);
+      int total = 0;
+      for (var conv in conversations) {
+        total += conv.getUnreadCount(userId);
+      }
+      print('📊 Total messages non lus pour $userId: $total');
+      return total;
+    } catch (e) {
+      print('❌ Erreur getTotalUnreadCount: $e');
+      return 0;
+    }
+  }
 
   // Récupérer les messages d'une conversation
   Future<List<Message>> getMessages(String conversationId) async {

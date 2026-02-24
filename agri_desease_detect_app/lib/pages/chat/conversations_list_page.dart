@@ -5,7 +5,12 @@ import '../../services/auth_service.dart';
 import 'chat_page.dart';
 
 class ConversationsListPage extends StatefulWidget {
-  const ConversationsListPage({super.key});
+  final VoidCallback? onConversationOpened;
+  
+  const ConversationsListPage({
+    super.key,
+    this.onConversationOpened,
+  });
 
   @override
   State<ConversationsListPage> createState() => _ConversationsListPageState();
@@ -51,12 +56,18 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
 
   @override
   Widget build(BuildContext context) {
+    print('🎨 ConversationsListPage build: isLoading=$_isLoading, conversations=${_conversations.length}');
+    
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
+        backgroundColor: Colors.green,
+        foregroundColor: Colors.white,
         title: const Text('Mes Conversations'),
+        elevation: 0,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: Colors.green))
           : _conversations.isEmpty
               ? Center(
                   child: Column(
@@ -73,6 +84,7 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
                         style: TextStyle(
                           fontSize: 18,
                           color: Colors.grey.shade600,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -88,9 +100,18 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
                 )
               : RefreshIndicator(
                   onRefresh: _loadConversations,
-                  child: ListView.builder(
+                  color: Colors.green,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
                     itemCount: _conversations.length,
+                    separatorBuilder: (context, index) => Divider(
+                      height: 1,
+                      indent: 72,
+                      endIndent: 16,
+                      color: Colors.grey.shade200,
+                    ),
                     itemBuilder: (context, index) {
+                      print('📝 Building conversation tile $index');
                       final conversation = _conversations[index];
                       return _buildConversationTile(conversation);
                     },
@@ -102,117 +123,150 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
   Widget _buildConversationTile(Conversation conversation) {
     final currentUserId = _authService.currentUserId;
     
-    // Déterminer qui est l'autre personne (vendor ou buyer)
-    final isUserBuyer = conversation.buyerId == currentUserId;
-    final otherPersonId = isUserBuyer ? conversation.vendorId : conversation.buyerId;
-    final otherPersonName = isUserBuyer 
-        ? (conversation.vendorName ?? 'Vendeur') 
-        : 'Acheteur';
-    
-    final productName = conversation.productName ?? 'Produit';
-    final lastMessage = conversation.lastMessage ?? '';
-    final unreadCount = conversation.unreadCount;
-    
-    // Formater le temps du dernier message
-    String timeText = '';
-    if (conversation.lastMessageTime != null) {
-      final now = DateTime.now();
-      final diff = now.difference(conversation.lastMessageTime!);
-      
-      if (diff.inDays == 0) {
-        timeText = '${conversation.lastMessageTime!.hour.toString().padLeft(2, '0')}:${conversation.lastMessageTime!.minute.toString().padLeft(2, '0')}';
-      } else if (diff.inDays == 1) {
-        timeText = 'Hier';
-      } else if (diff.inDays < 7) {
-        timeText = '${diff.inDays}j';
-      } else {
-        timeText = '${conversation.lastMessageTime!.day}/${conversation.lastMessageTime!.month}';
-      }
+    if (currentUserId == null) {
+      print('❌ currentUserId est null dans _buildConversationTile');
+      return const SizedBox.shrink();
     }
+    
+    try {
+      // Déterminer qui est l'autre personne (vendor ou buyer)
+      final isUserBuyer = conversation.buyerId == currentUserId;
+      final otherPersonId = isUserBuyer ? conversation.vendorId : conversation.buyerId;
+      final otherPersonName = isUserBuyer 
+          ? (conversation.vendorName ?? 'Vendeur') 
+          : (conversation.buyerName ?? 'Acheteur');
+      
+      final productName = conversation.productName ?? 'Produit';
+      final lastMessage = conversation.lastMessage ?? '';
+      final unreadCount = conversation.getUnreadCount(currentUserId);
+      
+      print('🔍 Conversation tile: product=$productName, otherPerson=$otherPersonName, unread=$unreadCount');
+      
+      // Formater le temps du dernier message
+      String timeText = '';
+      if (conversation.lastMessageTime != null) {
+        final now = DateTime.now();
+        final diff = now.difference(conversation.lastMessageTime!);
+        
+        if (diff.inDays == 0) {
+          timeText = '${conversation.lastMessageTime!.hour.toString().padLeft(2, '0')}:${conversation.lastMessageTime!.minute.toString().padLeft(2, '0')}';
+        } else if (diff.inDays == 1) {
+          timeText = 'Hier';
+        } else if (diff.inDays < 7) {
+          timeText = '${diff.inDays}j';
+        } else {
+          timeText = '${conversation.lastMessageTime!.day}/${conversation.lastMessageTime!.month}';
+        }
+      }
 
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: Colors.green.shade700,
-        child: Text(
-          otherPersonName[0].toUpperCase(),
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
+      return ListTile(
+        leading: CircleAvatar(
+          backgroundColor: Colors.green.shade700,
+          child: Text(
+            otherPersonName[0].toUpperCase(),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+            ),
           ),
         ),
-      ),
-      title: Row(
-        children: [
-          Expanded(
-            child: Text(
-              productName,
-              style: TextStyle(
-                fontWeight: unreadCount > 0 ? FontWeight.bold : FontWeight.w600,
-                fontSize: 16,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          if (timeText.isNotEmpty)
-            Text(
-              timeText,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade600,
-              ),
-            ),
-        ],
-      ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            otherPersonName,
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey.shade600,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            lastMessage.isEmpty ? 'Aucun message' : lastMessage,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontWeight: unreadCount > 0 ? FontWeight.w600 : FontWeight.normal,
-              color: lastMessage.isEmpty ? Colors.grey.shade400 : null,
-            ),
-          ),
-        ],
-      ),
-      trailing: unreadCount > 0
-          ? Container(
-              padding: const EdgeInsets.all(6),
-              decoration: const BoxDecoration(
-                color: Colors.red,
-                shape: BoxShape.circle,
-              ),
+        title: Row(
+          children: [
+            Expanded(
               child: Text(
-                '$unreadCount',
-                style: const TextStyle(
-                  color: Colors.white,
+                productName,
+                style: TextStyle(
+                  fontWeight: unreadCount > 0 ? FontWeight.bold : FontWeight.w600,
+                  fontSize: 16,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (timeText.isNotEmpty)
+              Text(
+                timeText,
+                style: TextStyle(
                   fontSize: 12,
-                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade600,
                 ),
               ),
-            )
-          : null,
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ChatPage(conversation: conversation),
-          ),
-        ).then((_) => _loadConversations());
-      },
-    );
+          ],
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              otherPersonName,
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              lastMessage.isEmpty ? 'Commencer la conversation' : lastMessage,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontWeight: unreadCount > 0 ? FontWeight.w600 : FontWeight.normal,
+                color: lastMessage.isEmpty ? Colors.grey.shade400 : null,
+              ),
+            ),
+          ],
+        ),
+        trailing: unreadCount > 0
+            ? SizedBox(
+                width: 40,
+                height: 40,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      unreadCount > 99 ? '99+' : '$unreadCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              )
+            : null,
+        onTap: () async {
+          print('🔔 Ouverture conversation: ${conversation.id}');
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ChatPage(conversation: conversation),
+            ),
+          );
+          // Recharger les conversations après avoir ouvert le chat
+          print('🔄 Rechargement des conversations...');
+          _loadConversations();
+          
+          // Notifier le parent pour recharger le compteur
+          widget.onConversationOpened?.call();
+        },
+      );
+    } catch (e, stackTrace) {
+      print('❌ Erreur dans _buildConversationTile: $e');
+      print('Stack: $stackTrace');
+      return ListTile(
+        leading: const CircleAvatar(
+          backgroundColor: Colors.red,
+          child: Icon(Icons.error, color: Colors.white),
+        ),
+        title: const Text('Erreur d\'affichage'),
+        subtitle: Text('$e'),
+      );
+    }
   }
 }

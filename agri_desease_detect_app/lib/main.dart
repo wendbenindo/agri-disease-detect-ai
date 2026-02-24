@@ -1,5 +1,6 @@
 import 'package:agri_desease_detect_app/services/supabase_service.dart';
 import 'package:agri_desease_detect_app/services/auth_service.dart';
+import 'package:agri_desease_detect_app/services/chat_service.dart';
 import 'dart:io' show Platform;
 import 'package:agri_desease_detect_app/pages/communitypage.dart';
 import 'package:agri_desease_detect_app/pages/profile/profile_page.dart';
@@ -117,6 +118,7 @@ class NavigationController extends StatefulWidget {
 class _NavigationControllerState extends State<NavigationController> with WidgetsBindingObserver {
   int _selectedIndex = 0;
   int _profileRebuildKey = 0; // Compteur pour forcer le rebuild
+  int _unreadMessagesCount = 0; // Compteur de messages non lus
   final AuthService _authService = AuthService();
 
   @override
@@ -133,6 +135,7 @@ class _NavigationControllerState extends State<NavigationController> with Widget
         setState(() {
           _profileRebuildKey++;
         });
+        _loadUnreadCount();
       }
     });
   }
@@ -151,6 +154,24 @@ class _NavigationControllerState extends State<NavigationController> with Widget
       setState(() {
         _profileRebuildKey++;
       });
+      _loadUnreadCount();
+    }
+  }
+  
+  Future<void> _loadUnreadCount() async {
+    if (!_authService.isAuthenticated) {
+      setState(() => _unreadMessagesCount = 0);
+      return;
+    }
+    
+    try {
+      final chatService = ChatService();
+      final count = await chatService.getTotalUnreadCount(_authService.currentUserId!);
+      if (mounted) {
+        setState(() => _unreadMessagesCount = count);
+      }
+    } catch (e) {
+      print('❌ Erreur chargement messages non lus: $e');
     }
   }
 
@@ -161,6 +182,7 @@ class _NavigationControllerState extends State<NavigationController> with Widget
       setState(() {
         _profileRebuildKey++;
       });
+      _loadUnreadCount();
     }
   }
 
@@ -168,8 +190,14 @@ class _NavigationControllerState extends State<NavigationController> with Widget
     const HomePage(),
     const DiagnosticPage(),
     const MarketplacePage(),
-    const ConversationsListPage(),
-    ProfilePage(key: ValueKey(_profileRebuildKey)), // Nouvelle clé à chaque rebuild
+    ConversationsListPage(
+      key: ValueKey('conversations_$_unreadMessagesCount'),
+      onConversationOpened: () {
+        // Recharger le compteur après avoir ouvert une conversation
+        _loadUnreadCount();
+      },
+    ),
+    ProfilePage(key: ValueKey(_profileRebuildKey)),
   ];
 
   void _onItemTapped(int index) {
@@ -177,6 +205,10 @@ class _NavigationControllerState extends State<NavigationController> with Widget
       // Si on navigue vers le profil, incrémenter la clé pour forcer un rebuild complet
       if (index == 4 && _selectedIndex != 4) {
         _profileRebuildKey++;
+      }
+      // Si on navigue vers les messages, recharger le compteur
+      if (index == 3) {
+        _loadUnreadCount();
       }
       _selectedIndex = index;
     });
@@ -195,25 +227,60 @@ class _NavigationControllerState extends State<NavigationController> with Widget
         backgroundColor: Colors.white,
         selectedItemColor: Colors.green.shade700,
         unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed, // Important pour afficher tous les items
-        items: const [
-          BottomNavigationBarItem(
+        type: BottomNavigationBarType.fixed,
+        showSelectedLabels: true,
+        showUnselectedLabels: false, // Masquer les labels non sélectionnés
+        selectedFontSize: 12,
+        items: [
+          const BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Accueil',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.health_and_safety),
             label: 'Diagnostic',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.shopping_bag),
             label: 'Marketplace',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.chat),
+            icon: _unreadMessagesCount > 0
+                ? Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      const Icon(Icons.chat),
+                      Positioned(
+                        right: -6,
+                        top: -6,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 18,
+                            minHeight: 18,
+                          ),
+                          child: Center(
+                            child: Text(
+                              _unreadMessagesCount > 99 ? '99+' : '$_unreadMessagesCount',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : const Icon(Icons.chat),
             label: 'Messages',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.person),
             label: 'Profil',
           ),
