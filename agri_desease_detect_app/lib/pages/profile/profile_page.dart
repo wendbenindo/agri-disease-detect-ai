@@ -260,12 +260,12 @@ class _ProfilePageState extends State<ProfilePage> {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Column(
                         children: [
-                          // Bouton Admin
+                          // Boutons Admin
                           if (_userRole?.isAdmin == true) ...[
                             _buildActionButton(
                               icon: Icons.admin_panel_settings,
                               label: 'Demandes vendeurs',
-                              color: Colors.purple,
+                              color: Colors.green,
                               onTap: () {
                                 Navigator.push(
                                   context,
@@ -281,7 +281,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             _buildActionButton(
                               icon: Icons.verified_user,
                               label: 'Vérifications en attente',
-                              color: Colors.orange,
+                              color: Colors.green,
                               onTap: () {
                                 Navigator.push(
                                   context,
@@ -342,55 +342,10 @@ class _ProfilePageState extends State<ProfilePage> {
                     const SizedBox(height: 24),
                   ],
                   
-                  // Statistiques avec meilleur design
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _buildStatCard(
-                            icon: Icons.chat_bubble,
-                            label: 'Messages',
-                            value: '0',
-                            color: Colors.blue,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildStatCard(
-                            icon: Icons.shopping_bag,
-                            label: 'Commandes',
-                            value: '0',
-                            color: Colors.orange,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildStatCard(
-                            icon: Icons.favorite,
-                            label: 'Favoris',
-                            value: '0',
-                            color: Colors.red,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 24),
-                  
-                  // Menu Options
+                  // Menu Options - Seulement les fonctionnalités actives
                   _buildMenuSection(
                     title: 'Mon Compte',
                     items: [
-                      _buildMenuItem(
-                        icon: Icons.person,
-                        title: 'Informations personnelles',
-                        subtitle: 'Modifier vos informations',
-                        onTap: () {
-                          // TODO: Page édition profil
-                        },
-                      ),
                       if (_authService.isVendor)
                         _buildMenuItem(
                           icon: Icons.inventory,
@@ -405,86 +360,6 @@ class _ProfilePageState extends State<ProfilePage> {
                             );
                           },
                         ),
-                      _buildMenuItem(
-                        icon: Icons.chat,
-                        title: 'Mes conversations',
-                        subtitle: 'Voir tous vos messages',
-                        onTap: () {
-                          Navigator.pushNamed(context, '/conversations');
-                        },
-                      ),
-                      _buildMenuItem(
-                        icon: Icons.shopping_bag,
-                        title: 'Mes commandes',
-                        subtitle: 'Historique des achats',
-                        onTap: () {
-                          // TODO: Page commandes
-                        },
-                      ),
-                      _buildMenuItem(
-                        icon: Icons.favorite,
-                        title: 'Mes favoris',
-                        subtitle: 'Produits sauvegardés',
-                        onTap: () {
-                          // TODO: Page favoris
-                        },
-                      ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 16),
-                  
-                  _buildMenuSection(
-                    title: 'Paramètres',
-                    items: [
-                      _buildMenuItem(
-                        icon: Icons.notifications,
-                        title: 'Notifications',
-                        subtitle: 'Gérer les notifications',
-                        onTap: () {
-                          // TODO: Page notifications
-                        },
-                      ),
-                      _buildMenuItem(
-                        icon: Icons.language,
-                        title: 'Langue',
-                        subtitle: 'Français',
-                        onTap: () {
-                          // TODO: Page langue
-                        },
-                      ),
-                      _buildMenuItem(
-                        icon: Icons.security,
-                        title: 'Sécurité',
-                        subtitle: 'Mot de passe et sécurité',
-                        onTap: () {
-                          // TODO: Page sécurité
-                        },
-                      ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 16),
-                  
-                  _buildMenuSection(
-                    title: 'Support',
-                    items: [
-                      _buildMenuItem(
-                        icon: Icons.help_outline,
-                        title: 'Aide & Support',
-                        subtitle: 'Besoin d\'aide?',
-                        onTap: () {
-                          // TODO: Page aide
-                        },
-                      ),
-                      _buildMenuItem(
-                        icon: Icons.info_outline,
-                        title: 'À propos',
-                        subtitle: 'Version 1.0.0',
-                        onTap: () {
-                          // TODO: Page à propos
-                        },
-                      ),
                     ],
                   ),
                   
