@@ -155,11 +155,21 @@ class SupabaseProductDataSource {
   // Supprimer un produit
   Future<void> deleteProduct(String productId) async {
     try {
-      await _client
+      print('🗑️ Suppression du produit: $productId');
+      
+      final response = await _client
           .from('products')
           .delete()
-          .eq('id', productId);
+          .eq('id', productId)
+          .select();
+      
+      print('✅ Produit supprimé: $response');
+      
+      if (response.isEmpty) {
+        print('⚠️ Aucun produit supprimé - ID introuvable ou RLS bloque');
+      }
     } catch (e) {
+      print('❌ Erreur suppression produit: $e');
       throw Exception('Erreur lors de la suppression du produit: $e');
     }
   }

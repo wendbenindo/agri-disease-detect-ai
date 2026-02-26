@@ -5,11 +5,15 @@ import '../../model/marketplace/vendor.dart';
 import 'supabase_product_datasource.dart';
 import 'local_product_datasource.dart';
 import '../auth_service.dart';
+import '../storage_service.dart';
+import 'product_images_service.dart';
 
 class ProductRepository {
   final SupabaseProductDataSource _remoteDataSource = SupabaseProductDataSource();
   final LocalProductDataSource _localDataSource = LocalProductDataSource();
   final AuthService _authService = AuthService();
+  final StorageService _storageService = StorageService();
+  final ProductImagesService _productImagesService = ProductImagesService();
 
   // Vérifier la connectivité
   Future<bool> _isOnline() async {
@@ -256,7 +260,31 @@ class ProductRepository {
         throw Exception('Vous ne pouvez supprimer que vos propres produits');
       }
 
+      print('🗑️ Suppression du produit et de ses images...');
+
+      // 1. Supprimer toutes les images additionnelles
+      try {
+        await _productImagesService.deleteAllProductImages(productId);
+        print('✅ Images additionnelles supprimées');
+      } catch (e) {
+        print('⚠️ Erreur suppression images additionnelles: $e');
+        // Continuer même si erreur
+      }
+
+      // 2. Supprimer l'image principale du produit
+      if (product.photoUrl != null && product.photoUrl!.isNotEmpty) {
+        try {
+          await _storageService.deleteProductImage(product.photoUrl!);
+          print('✅ Image principale supprimée');
+        } catch (e) {
+          print('⚠️ Erreur suppression image principale: $e');
+          // Continuer même si erreur
+        }
+      }
+
+      // 3. Supprimer le produit de la base de données
       await _remoteDataSource.deleteProduct(productId);
+      print('✅ Produit supprimé de la base de données');
 
       // Rafraîchir le cache
       await syncAll();
