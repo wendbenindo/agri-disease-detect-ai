@@ -84,3 +84,4 @@ supabase_notifications_v1.sql
 supabase_add_fcm_token.sql
 tiptiga-firebase-service-account.json
 agri_desease_detect_app/android/app/google-services.json
+/.local
