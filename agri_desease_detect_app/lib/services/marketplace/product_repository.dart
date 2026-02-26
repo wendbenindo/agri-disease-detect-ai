@@ -4,10 +4,12 @@ import '../../model/marketplace/category.dart';
 import '../../model/marketplace/vendor.dart';
 import 'supabase_product_datasource.dart';
 import 'local_product_datasource.dart';
+import '../auth_service.dart';
 
 class ProductRepository {
   final SupabaseProductDataSource _remoteDataSource = SupabaseProductDataSource();
   final LocalProductDataSource _localDataSource = LocalProductDataSource();
+  final AuthService _authService = AuthService();
 
   // Vérifier la connectivité
   Future<bool> _isOnline() async {
@@ -181,6 +183,22 @@ class ProductRepository {
     String? dosage,
     String? instructions,
   }) async {
+    // ✅ SÉCURITÉ: Vérifier que l'utilisateur est connecté
+    final currentUserId = _authService.currentUserId;
+    if (currentUserId == null) {
+      throw Exception('Vous devez être connecté pour ajouter un produit');
+    }
+
+    // ✅ SÉCURITÉ: Vérifier que l'utilisateur est vendeur ou admin
+    if (!_authService.isVendor && !_authService.isAdmin) {
+      throw Exception('Seuls les vendeurs peuvent ajouter des produits');
+    }
+
+    // ✅ SÉCURITÉ: Vérifier que vendorId correspond à l'utilisateur connecté
+    if (vendorId != currentUserId && !_authService.isAdmin) {
+      throw Exception('Vous ne pouvez ajouter des produits qu\'en votre nom');
+    }
+
     final isOnline = await _isOnline();
     
     if (!isOnline) {
@@ -210,6 +228,17 @@ class ProductRepository {
 
   // Supprimer un produit (vendeurs uniquement)
   Future<void> deleteProduct(String productId) async {
+    // ✅ SÉCURITÉ: Vérifier que l'utilisateur est connecté
+    final currentUserId = _authService.currentUserId;
+    if (currentUserId == null) {
+      throw Exception('Vous devez être connecté pour supprimer un produit');
+    }
+
+    // ✅ SÉCURITÉ: Vérifier que l'utilisateur est vendeur ou admin
+    if (!_authService.isVendor && !_authService.isAdmin) {
+      throw Exception('Seuls les vendeurs peuvent supprimer des produits');
+    }
+
     final isOnline = await _isOnline();
     
     if (!isOnline) {
@@ -217,6 +246,16 @@ class ProductRepository {
     }
 
     try {
+      // ✅ SÉCURITÉ: Vérifier que l'utilisateur est propriétaire du produit
+      final product = await getProductById(productId);
+      if (product == null) {
+        throw Exception('Produit introuvable');
+      }
+
+      if (product.vendorId != currentUserId && !_authService.isAdmin) {
+        throw Exception('Vous ne pouvez supprimer que vos propres produits');
+      }
+
       await _remoteDataSource.deleteProduct(productId);
 
       // Rafraîchir le cache
@@ -228,6 +267,22 @@ class ProductRepository {
 
   // Modifier un produit (vendeurs uniquement)
   Future<void> updateProduct(Product product) async {
+    // ✅ SÉCURITÉ: Vérifier que l'utilisateur est connecté
+    final currentUserId = _authService.currentUserId;
+    if (currentUserId == null) {
+      throw Exception('Vous devez être connecté pour modifier un produit');
+    }
+
+    // ✅ SÉCURITÉ: Vérifier que l'utilisateur est vendeur ou admin
+    if (!_authService.isVendor && !_authService.isAdmin) {
+      throw Exception('Seuls les vendeurs peuvent modifier des produits');
+    }
+
+    // ✅ SÉCURITÉ: Vérifier que l'utilisateur est propriétaire du produit
+    if (product.vendorId != currentUserId && !_authService.isAdmin) {
+      throw Exception('Vous ne pouvez modifier que vos propres produits');
+    }
+
     final isOnline = await _isOnline();
     
     if (!isOnline) {

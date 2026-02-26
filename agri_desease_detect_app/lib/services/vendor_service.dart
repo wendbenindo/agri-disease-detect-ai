@@ -134,6 +134,17 @@ class VendorService {
   /// Récupérer toutes les demandes (ADMIN uniquement)
   Future<List<VendorRequest>> getAllVendorRequests({String? status}) async {
     try {
+      // ✅ SÉCURITÉ: Vérifier que l'utilisateur est connecté
+      final currentUserId = _authService.currentUserId;
+      if (currentUserId == null) {
+        throw Exception('Vous devez être connecté pour voir les demandes');
+      }
+
+      // ✅ SÉCURITÉ: Vérifier que l'utilisateur est admin
+      if (!_authService.isAdmin) {
+        throw Exception('Seuls les administrateurs peuvent voir toutes les demandes');
+      }
+
       var query = _supabase.from('vendor_requests').select();
 
       if (status != null) {
@@ -147,16 +158,22 @@ class VendorService {
           .toList();
     } catch (e) {
       print('❌ Erreur getAllVendorRequests: $e');
-      return [];
+      rethrow;
     }
   }
 
   /// Approuver une demande (ADMIN uniquement)
   Future<void> approveVendorRequest(String requestId) async {
     try {
+      // ✅ SÉCURITÉ: Vérifier que l'utilisateur est connecté
       final adminId = _authService.currentUserId;
       if (adminId == null) {
-        throw Exception('Utilisateur non connecté');
+        throw Exception('Vous devez être connecté pour approuver une demande');
+      }
+
+      // ✅ SÉCURITÉ: Vérifier que l'utilisateur est admin
+      if (!_authService.isAdmin) {
+        throw Exception('Seuls les administrateurs peuvent approuver des demandes');
       }
 
       await _supabase.rpc('approve_vendor_request', params: {
@@ -174,9 +191,15 @@ class VendorService {
   /// Rejeter une demande (ADMIN uniquement)
   Future<void> rejectVendorRequest(String requestId) async {
     try {
+      // ✅ SÉCURITÉ: Vérifier que l'utilisateur est connecté
       final adminId = _authService.currentUserId;
       if (adminId == null) {
-        throw Exception('Utilisateur non connecté');
+        throw Exception('Vous devez être connecté pour rejeter une demande');
+      }
+
+      // ✅ SÉCURITÉ: Vérifier que l'utilisateur est admin
+      if (!_authService.isAdmin) {
+        throw Exception('Seuls les administrateurs peuvent rejeter des demandes');
       }
 
       await _supabase.rpc('reject_vendor_request', params: {
@@ -194,6 +217,17 @@ class VendorService {
   /// Compter les demandes en attente (ADMIN uniquement)
   Future<int> getPendingRequestsCount() async {
     try {
+      // ✅ SÉCURITÉ: Vérifier que l'utilisateur est connecté
+      final currentUserId = _authService.currentUserId;
+      if (currentUserId == null) {
+        return 0;
+      }
+
+      // ✅ SÉCURITÉ: Vérifier que l'utilisateur est admin
+      if (!_authService.isAdmin) {
+        throw Exception('Seuls les administrateurs peuvent voir le compteur de demandes');
+      }
+
       final response = await _supabase
           .from('vendor_requests')
           .select()

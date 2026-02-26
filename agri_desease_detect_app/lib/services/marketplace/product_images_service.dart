@@ -1,16 +1,35 @@
 import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../storage_service.dart';
+import '../auth_service.dart';
 
 class ProductImagesService {
   final _supabase = Supabase.instance.client;
   final _storageService = StorageService();
+  final AuthService _authService = AuthService();
 
   /// Uploader plusieurs images additionnelles pour un produit
   Future<List<String>> uploadAdditionalImages(
     String productId,
     List<File> imageFiles,
   ) async {
+    // ✅ SÉCURITÉ: Vérifier que l'utilisateur est connecté
+    final currentUserId = _authService.currentUserId;
+    if (currentUserId == null) {
+      throw Exception('Vous devez être connecté pour ajouter des images');
+    }
+
+    // ✅ SÉCURITÉ: Vérifier que l'utilisateur est propriétaire du produit
+    final product = await _supabase
+        .from('products')
+        .select('vendor_id')
+        .eq('id', productId)
+        .single();
+
+    if (product['vendor_id'] != currentUserId && !_authService.isAdmin) {
+      throw Exception('Vous ne pouvez ajouter des images qu\'à vos propres produits');
+    }
+
     final uploadedUrls = <String>[];
 
     try {
@@ -66,6 +85,23 @@ class ProductImagesService {
   /// Supprimer une image additionnelle
   Future<void> deleteProductImage(String productId, String imageUrl) async {
     try {
+      // ✅ SÉCURITÉ: Vérifier que l'utilisateur est connecté
+      final currentUserId = _authService.currentUserId;
+      if (currentUserId == null) {
+        throw Exception('Vous devez être connecté pour supprimer une image');
+      }
+
+      // ✅ SÉCURITÉ: Vérifier que l'utilisateur est propriétaire du produit
+      final product = await _supabase
+          .from('products')
+          .select('vendor_id')
+          .eq('id', productId)
+          .single();
+
+      if (product['vendor_id'] != currentUserId && !_authService.isAdmin) {
+        throw Exception('Vous ne pouvez supprimer que les images de vos propres produits');
+      }
+
       // Supprimer de la base de données
       await _supabase
           .from('product_images')
@@ -86,6 +122,23 @@ class ProductImagesService {
   /// Supprimer toutes les images additionnelles d'un produit
   Future<void> deleteAllProductImages(String productId) async {
     try {
+      // ✅ SÉCURITÉ: Vérifier que l'utilisateur est connecté
+      final currentUserId = _authService.currentUserId;
+      if (currentUserId == null) {
+        throw Exception('Vous devez être connecté pour supprimer des images');
+      }
+
+      // ✅ SÉCURITÉ: Vérifier que l'utilisateur est propriétaire du produit
+      final product = await _supabase
+          .from('products')
+          .select('vendor_id')
+          .eq('id', productId)
+          .single();
+
+      if (product['vendor_id'] != currentUserId && !_authService.isAdmin) {
+        throw Exception('Vous ne pouvez supprimer que les images de vos propres produits');
+      }
+
       // Récupérer toutes les URLs
       final images = await getProductImages(productId);
 

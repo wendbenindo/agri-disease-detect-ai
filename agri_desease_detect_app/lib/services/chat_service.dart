@@ -2,9 +2,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../model/chat/conversation.dart';
 import '../model/chat/message.dart';
 import 'onesignal_service.dart';
+import 'auth_service.dart';
 
 class ChatService {
   final SupabaseClient _client = Supabase.instance.client;
+  final AuthService _authService = AuthService();
 
   // Créer ou récupérer une conversation
   Future<Conversation> getOrCreateConversation({
@@ -15,6 +17,22 @@ class ChatService {
     String? productPhotoUrl,
   }) async {
     print('📞 Création/récupération conversation: productId=$productId, buyerId=$buyerId, vendorId=$vendorId');
+
+    // ✅ SÉCURITÉ: Vérifier que l'utilisateur est connecté
+    final currentUserId = _authService.currentUserId;
+    if (currentUserId == null) {
+      throw Exception('Vous devez être connecté pour démarrer une conversation');
+    }
+
+    // ✅ SÉCURITÉ: Vérifier que buyerId correspond à l'utilisateur connecté
+    if (buyerId != currentUserId) {
+      throw Exception('Vous ne pouvez pas créer une conversation pour un autre utilisateur');
+    }
+
+    // ✅ SÉCURITÉ: Vérifier que l'utilisateur ne se contacte pas lui-même
+    if (buyerId == vendorId) {
+      throw Exception('Vous ne pouvez pas vous contacter vous-même');
+    }
 
     // Vérifier si une conversation existe déjà
     final existing = await _client
@@ -61,6 +79,17 @@ class ChatService {
   Future<List<Conversation>> getUserConversations(String userId) async {
     print('📞 Récupération des conversations pour userId: $userId');
     
+    // ✅ SÉCURITÉ: Vérifier que l'utilisateur est connecté
+    final currentUserId = _authService.currentUserId;
+    if (currentUserId == null) {
+      throw Exception('Vous devez être connecté pour voir vos conversations');
+    }
+
+    // ✅ SÉCURITÉ: Vérifier que userId correspond à l'utilisateur connecté
+    if (userId != currentUserId) {
+      throw Exception('Vous ne pouvez pas voir les conversations d\'un autre utilisateur');
+    }
+    
     try {
       final response = await _client
           .from('conversations_with_details')
@@ -85,6 +114,17 @@ class ChatService {
   
   // Compter le nombre total de messages non lus pour un utilisateur
   Future<int> getTotalUnreadCount(String userId) async {
+    // ✅ SÉCURITÉ: Vérifier que l'utilisateur est connecté
+    final currentUserId = _authService.currentUserId;
+    if (currentUserId == null) {
+      return 0;
+    }
+
+    // ✅ SÉCURITÉ: Vérifier que userId correspond à l'utilisateur connecté
+    if (userId != currentUserId) {
+      throw Exception('Vous ne pouvez pas voir le compteur d\'un autre utilisateur');
+    }
+
     try {
       final conversations = await getUserConversations(userId);
       int total = 0;
@@ -101,6 +141,24 @@ class ChatService {
 
   // Récupérer les messages d'une conversation
   Future<List<Message>> getMessages(String conversationId) async {
+    // ✅ SÉCURITÉ: Vérifier que l'utilisateur est connecté
+    final currentUserId = _authService.currentUserId;
+    if (currentUserId == null) {
+      throw Exception('Vous devez être connecté pour voir les messages');
+    }
+
+    // ✅ SÉCURITÉ: Vérifier que l'utilisateur est participant de la conversation
+    final conversation = await _client
+        .from('conversations')
+        .select('buyer_id, vendor_id')
+        .eq('id', conversationId)
+        .single();
+
+    if (conversation['buyer_id'] != currentUserId && 
+        conversation['vendor_id'] != currentUserId) {
+      throw Exception('Vous n\'êtes pas participant de cette conversation');
+    }
+
     final response = await _client
         .from('messages')
         .select()
@@ -119,6 +177,29 @@ class ChatService {
     required String content,
     String? imageUrl,
   }) async {
+    // ✅ SÉCURITÉ: Vérifier que l'utilisateur est connecté
+    final currentUserId = _authService.currentUserId;
+    if (currentUserId == null) {
+      throw Exception('Vous devez être connecté pour envoyer un message');
+    }
+
+    // ✅ SÉCURITÉ: Vérifier que senderId correspond à l'utilisateur connecté
+    if (senderId != currentUserId) {
+      throw Exception('Vous ne pouvez pas envoyer un message pour un autre utilisateur');
+    }
+
+    // ✅ SÉCURITÉ: Vérifier que l'utilisateur est participant de la conversation
+    final conversation = await _client
+        .from('conversations')
+        .select('buyer_id, vendor_id')
+        .eq('id', conversationId)
+        .single();
+
+    if (conversation['buyer_id'] != currentUserId && 
+        conversation['vendor_id'] != currentUserId) {
+      throw Exception('Vous n\'êtes pas participant de cette conversation');
+    }
+
     final messageData = {
       'conversation_id': conversationId,
       'sender_id': senderId,
@@ -143,13 +224,6 @@ class ChatService {
 
     // Envoyer une notification au destinataire
     try {
-      // Récupérer les infos de la conversation pour savoir qui est le destinataire
-      final conversation = await _client
-          .from('conversations')
-          .select('buyer_id, vendor_id')
-          .eq('id', conversationId)
-          .single();
-      
       // Déterminer qui est le destinataire (celui qui n'est pas l'expéditeur)
       final receiverId = conversation['buyer_id'] == senderId 
           ? conversation['vendor_id'] 
@@ -193,6 +267,8 @@ class ChatService {
 
   // Écouter les nouveaux messages en temps réel
   Stream<Message> subscribeToMessages(String conversationId) {
+    // Note: La vérification de sécurité est faite lors de l'appel à getMessages()
+    // qui est appelé avant de s'abonner au stream
     return _client
         .from('messages')
         .stream(primaryKey: ['id'])
@@ -204,7 +280,31 @@ class ChatService {
 
   // Marquer les messages comme lus
   Future<void> markAsRead(String conversationId, String userId) async {
+    // ✅ SÉCURITÉ: Vérifier que l'utilisateur est connecté
+    final currentUserId = _authService.currentUserId;
+    if (currentUserId == null) {
+      print('⚠️ Utilisateur non connecté, impossible de marquer comme lu');
+      return;
+    }
+
+    // ✅ SÉCURITÉ: Vérifier que userId correspond à l'utilisateur connecté
+    if (userId != currentUserId) {
+      throw Exception('Vous ne pouvez pas marquer les messages d\'un autre utilisateur comme lus');
+    }
+
+    // ✅ SÉCURITÉ: Vérifier que l'utilisateur est participant de la conversation
     try {
+      final conversation = await _client
+          .from('conversations')
+          .select('buyer_id, vendor_id')
+          .eq('id', conversationId)
+          .single();
+
+      if (conversation['buyer_id'] != currentUserId && 
+          conversation['vendor_id'] != currentUserId) {
+        throw Exception('Vous n\'êtes pas participant de cette conversation');
+      }
+
       print('📖 Marquage des messages comme lus...');
       print('   - conversationId: $conversationId');
       print('   - userId: $userId');
