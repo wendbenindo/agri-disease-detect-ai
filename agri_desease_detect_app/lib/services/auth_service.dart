@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:agri_desease_detect_app/services/onesignal_service.dart';
 
 class AuthService {
   // Singleton pattern
@@ -137,6 +138,9 @@ class AuthService {
       
       // Notifier les listeners du changement d'état
       authStateNotifier.value = true;
+      
+      // Configurer OneSignal pour cet utilisateur
+      await OneSignalService.setUser(userId);
 
       print('✅ Utilisateur connecté:');
       print('   - userId: $userId');
@@ -205,6 +209,9 @@ class AuthService {
       
       // Notifier les listeners du changement d'état
       authStateNotifier.value = true;
+      
+      // Configurer OneSignal pour cet utilisateur
+      await OneSignalService.setUser(userId);
 
       print('✅ Connexion réussie et sauvegardée:');
       print('   - userId: $userId');
@@ -228,6 +235,9 @@ class AuthService {
 
   // Déconnexion
   Future<void> signOut() async {
+    // Déconnecter de OneSignal
+    await OneSignalService.logout();
+    
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_userIdKey);
     await prefs.remove(_userPhoneKey);

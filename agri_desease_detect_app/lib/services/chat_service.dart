@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../model/chat/conversation.dart';
 import '../model/chat/message.dart';
+import 'onesignal_service.dart';
 
 class ChatService {
   final SupabaseClient _client = Supabase.instance.client;
@@ -139,6 +140,53 @@ class ChatService {
         .from('conversations')
         .update({'updated_at': DateTime.now().toIso8601String()})
         .eq('id', conversationId);
+
+    // Envoyer une notification au destinataire
+    try {
+      // Récupérer les infos de la conversation pour savoir qui est le destinataire
+      final conversation = await _client
+          .from('conversations')
+          .select('buyer_id, vendor_id')
+          .eq('id', conversationId)
+          .single();
+      
+      // Déterminer qui est le destinataire (celui qui n'est pas l'expéditeur)
+      final receiverId = conversation['buyer_id'] == senderId 
+          ? conversation['vendor_id'] 
+          : conversation['buyer_id'];
+      
+      // Récupérer le nom de l'expéditeur
+      final senderInfo = await _client
+          .from('users')
+          .select('name')
+          .eq('id', senderId)
+          .single();
+      
+      final senderName = senderInfo['name'] as String;
+      
+      // Préparer le message de notification
+      String notificationMessage = content;
+      if (imageUrl != null) {
+        notificationMessage = '📷 Photo';
+      }
+      
+      // Envoyer la notification
+      print('📤 Envoi notification à $receiverId de la part de $senderName');
+      await OneSignalService.sendNotificationToUser(
+        userId: receiverId,
+        title: 'Nouveau message de $senderName',
+        message: notificationMessage,
+        data: {
+          'type': 'chat',
+          'conversation_id': conversationId,
+          'sender_id': senderId,
+        },
+      );
+      print('✅ Notification envoyée avec succès');
+    } catch (e) {
+      print('❌ Erreur envoi notification: $e');
+      // Ne pas bloquer l'envoi du message si la notification échoue
+    }
 
     return Message.fromJson(response);
   }

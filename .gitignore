@@ -78,3 +78,9 @@ supabase_vendor_functions.sql
 supabase_verification_functions.sql
 DEBUG_PAGE_BLANCHE_MESSAGES.md
 CORRECTION_MESSAGERIE.md
+supabase_add_onesignal_player_id.sql
+supabase_notifications_complete.sql
+supabase_notifications_v1.sql
+supabase_add_fcm_token.sql
+tiptiga-firebase-service-account.json
+agri_desease_detect_app/android/app/google-services.json

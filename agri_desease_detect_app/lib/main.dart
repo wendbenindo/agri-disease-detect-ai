@@ -1,6 +1,7 @@
 import 'package:agri_desease_detect_app/services/supabase_service.dart';
 import 'package:agri_desease_detect_app/services/auth_service.dart';
 import 'package:agri_desease_detect_app/services/chat_service.dart';
+import 'package:agri_desease_detect_app/services/onesignal_service.dart';
 import 'dart:io' show Platform;
 import 'package:agri_desease_detect_app/pages/communitypage.dart';
 import 'package:agri_desease_detect_app/pages/profile/profile_page.dart';
@@ -25,6 +26,10 @@ Future<void> main() async {
 
     // Initialisations critiques
     await initSupabase();
+    
+    // Initialiser OneSignal
+    await OneSignalService.initialize();
+    print('✅ OneSignal initialisé');
     
     // Initialiser AuthService
     final authService = AuthService();
