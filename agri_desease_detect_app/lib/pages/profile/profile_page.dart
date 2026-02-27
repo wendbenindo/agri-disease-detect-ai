@@ -197,13 +197,13 @@ class _ProfilePageState extends State<ProfilePage> with AutomaticKeepAliveClient
                   // Header avec gradient
                   Container(
                     width: double.infinity,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          Colors.green,
-                          Colors.green.shade600,
+                          Color(0xFF1B5E20), // Même couleur que le bouton "Analyser une plante"
+                          Color(0xFF2E7D32), // Nuance légèrement plus claire
                         ],
                       ),
                     ),
@@ -234,7 +234,7 @@ class _ProfilePageState extends State<ProfilePage> with AutomaticKeepAliveClient
                                   style: const TextStyle(
                                     fontSize: 32,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.green,
+                                    color: Color(0xFF1B5E20), // Même couleur que le bouton "Analyser une plante"
                                   ),
                                 ),
                               ),

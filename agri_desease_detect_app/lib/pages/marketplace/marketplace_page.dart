@@ -112,7 +112,7 @@ class _MarketplacePageState extends State<MarketplacePage> {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        backgroundColor: Colors.green,
+        backgroundColor: const Color(0xFF1B5E20), // Même couleur que le bouton "Analyser une plante"
         foregroundColor: Colors.white,
         title: const Text('TipTiga Market'),
         elevation: 0,
