@@ -1,12 +1,9 @@
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'dart:convert';
 
 class OneSignalService {
   static const String _appId = 'e150883a-86b2-4d49-bd52-b4ffbb34b84a';
-  static String get _restApiKey => dotenv.env['ONESIGNAL_REST_API_KEY'] ?? '';
+  // ✅ Plus besoin de la clé REST API ici, elle est sur le serveur
   
   /// Initialise OneSignal
   static Future<void> initialize() async {
@@ -58,7 +55,7 @@ class OneSignalService {
     }
   }
   
-  /// Envoie une notification à un utilisateur spécifique
+  /// Envoie une notification à un utilisateur spécifique via Edge Function sécurisée
   static Future<void> sendNotificationToUser({
     required String userId,
     required String title,
@@ -66,7 +63,7 @@ class OneSignalService {
     Map<String, dynamic>? data,
   }) async {
     try {
-      print('📤 Envoi de notification à l\'utilisateur: $userId');
+      print('📤 Envoi de notification via Edge Function à l\'utilisateur: $userId');
       
       // Récupérer le Player ID de l'utilisateur depuis Supabase
       final response = await Supabase.instance.client
@@ -84,28 +81,24 @@ class OneSignalService {
       
       print('📱 Player ID trouvé: $playerId');
       
-      // Envoyer la notification via l'API REST de OneSignal
-      final url = Uri.parse('https://onesignal.com/api/v1/notifications');
-      final headers = {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Authorization': 'Basic $_restApiKey',
-      };
+      // ✅ SÉCURISÉ: Envoyer la notification via Edge Function
+      // La clé REST API reste cachée sur le serveur
+      final functionResponse = await Supabase.instance.client.functions.invoke(
+        'send-notification',
+        body: {
+          'playerIds': [playerId],
+          'title': title,
+          'message': message,
+          'data': data ?? {},
+        },
+      );
       
-      final body = jsonEncode({
-        'app_id': _appId,
-        'include_player_ids': [playerId],
-        'headings': {'en': title},
-        'contents': {'en': message},
-        'data': data ?? {},
-      });
-      
-      final apiResponse = await http.post(url, headers: headers, body: body);
-      
-      if (apiResponse.statusCode == 200) {
-        print('✅ Notification envoyée avec succès');
+      if (functionResponse.status == 200) {
+        print('✅ Notification envoyée avec succès via Edge Function');
+        print('   Response: ${functionResponse.data}');
       } else {
-        print('❌ Erreur API OneSignal: ${apiResponse.statusCode}');
-        print('   Body: ${apiResponse.body}');
+        print('❌ Erreur Edge Function: ${functionResponse.status}');
+        print('   Response: ${functionResponse.data}');
       }
     } catch (e) {
       print('❌ Erreur lors de l\'envoi de la notification: $e');
