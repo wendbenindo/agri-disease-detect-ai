@@ -56,12 +56,10 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
 
   @override
   Widget build(BuildContext context) {
-    print('🎨 ConversationsListPage build: isLoading=$_isLoading, conversations=${_conversations.length}');
-    
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1B5E20), // Même couleur que le bouton "Analyser une plante"
+        backgroundColor: const Color(0xFF1B5E20),
         foregroundColor: Colors.white,
         title: const Text('Mes Conversations'),
         elevation: 0,
@@ -69,49 +67,15 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Colors.green))
           : _conversations.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.chat_bubble_outline,
-                        size: 64,
-                        color: Colors.grey.shade400,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Aucune conversation',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey.shade600,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Contactez un vendeur pour commencer',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade500,
-                        ),
-                      ),
-                    ],
-                  ),
-                )
+              ? _buildEmptyState()
               : RefreshIndicator(
                   onRefresh: _loadConversations,
                   color: Colors.green,
                   child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.all(16),
                     itemCount: _conversations.length,
-                    separatorBuilder: (context, index) => Divider(
-                      height: 1,
-                      indent: 72,
-                      endIndent: 16,
-                      color: Colors.grey.shade200,
-                    ),
+                    separatorBuilder: (context, index) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
-                      print('📝 Building conversation tile $index');
                       final conversation = _conversations[index];
                       return _buildConversationTile(conversation);
                     },
@@ -120,18 +84,81 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
     );
   }
 
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1B5E20).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.chat_bubble_outline,
+                size: 60,
+                color: const Color(0xFF1B5E20).withOpacity(0.6),
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Aucune conversation',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF212121),
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Contactez un vendeur depuis\nle marketplace pour commencer',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.grey.shade600,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton.icon(
+              onPressed: () {
+                DefaultTabController.of(context).animateTo(2);
+              },
+              icon: const Icon(Icons.shopping_bag),
+              label: const Text('Voir le Marketplace'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1B5E20),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 14,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildConversationTile(Conversation conversation) {
     final currentUserId = _authService.currentUserId;
     
     if (currentUserId == null) {
-      print('❌ currentUserId est null dans _buildConversationTile');
       return const SizedBox.shrink();
     }
     
     try {
-      // Déterminer qui est l'autre personne (vendor ou buyer)
       final isUserBuyer = conversation.buyerId == currentUserId;
-      final otherPersonId = isUserBuyer ? conversation.vendorId : conversation.buyerId;
       final otherPersonName = isUserBuyer 
           ? (conversation.vendorName ?? 'Vendeur') 
           : (conversation.buyerName ?? 'Acheteur');
@@ -140,9 +167,6 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
       final lastMessage = conversation.lastMessage ?? '';
       final unreadCount = conversation.getUnreadCount(currentUserId);
       
-      print('🔍 Conversation tile: product=$productName, otherPerson=$otherPersonName, unread=$unreadCount');
-      
-      // Formater le temps du dernier message
       String timeText = '';
       if (conversation.lastMessageTime != null) {
         final now = DateTime.now();
@@ -159,107 +183,137 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
         }
       }
 
-      return ListTile(
-        leading: CircleAvatar(
-          backgroundColor: Colors.green.shade700,
-          child: Text(
-            otherPersonName[0].toUpperCase(),
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF1B5E20).withOpacity(0.08),
+              blurRadius: 15,
+              offset: const Offset(0, 4),
+              spreadRadius: -2,
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ChatPage(conversation: conversation),
+                ),
+              );
+              await Future.delayed(const Duration(milliseconds: 1500));
+              await _loadConversations();
+              widget.onConversationOpened?.call();
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 28,
+                    backgroundColor: const Color(0xFF1B5E20),
+                    child: Text(
+                      otherPersonName[0].toUpperCase(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                productName,
+                                style: TextStyle(
+                                  fontWeight: unreadCount > 0 ? FontWeight.bold : FontWeight.w600,
+                                  fontSize: 16,
+                                  color: const Color(0xFF212121),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (timeText.isNotEmpty)
+                              Text(
+                                timeText,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade500,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          otherPersonName,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey.shade600,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                lastMessage.isEmpty ? 'Commencer la conversation' : lastMessage,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: unreadCount > 0 ? FontWeight.w600 : FontWeight.normal,
+                                  color: lastMessage.isEmpty 
+                                      ? Colors.grey.shade400 
+                                      : Colors.grey.shade700,
+                                ),
+                              ),
+                            ),
+                            if (unreadCount > 0) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  unreadCount > 9 ? '9+' : '$unreadCount',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-        title: Row(
-          children: [
-            Expanded(
-              child: Text(
-                productName,
-                style: TextStyle(
-                  fontWeight: unreadCount > 0 ? FontWeight.bold : FontWeight.w600,
-                  fontSize: 16,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            if (timeText.isNotEmpty)
-              Text(
-                timeText,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-          ],
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              otherPersonName,
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey.shade600,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              lastMessage.isEmpty ? 'Commencer la conversation' : lastMessage,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontWeight: unreadCount > 0 ? FontWeight.w600 : FontWeight.normal,
-                color: lastMessage.isEmpty ? Colors.grey.shade400 : null,
-              ),
-            ),
-          ],
-        ),
-        trailing: unreadCount > 0
-            ? Container(
-                width: 22,
-                height: 22,
-                decoration: const BoxDecoration(
-                  color: Colors.red,
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(
-                    unreadCount > 9 ? '9+' : '$unreadCount',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              )
-            : null,
-        onTap: () async {
-          print('🔔 Ouverture conversation: ${conversation.id}');
-          print('👤 Current user ID: $currentUserId');
-          
-          // Ouvrir le chat
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => ChatPage(conversation: conversation),
-            ),
-          );
-          
-          // Attendre plus longtemps pour que la BD se mette à jour
-          print('⏳ Attente de 1.5 secondes pour la mise à jour de la BD...');
-          await Future.delayed(const Duration(milliseconds: 1500));
-          
-          // Recharger les conversations après avoir fermé le chat
-          print('🔄 Rechargement des conversations après fermeture du chat...');
-          await _loadConversations();
-          
-          // Notifier le parent pour recharger le compteur global
-          widget.onConversationOpened?.call();
-        },
       );
     } catch (e, stackTrace) {
       print('❌ Erreur dans _buildConversationTile: $e');
