@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:shimmer/shimmer.dart';
 import '../../model/marketplace/product.dart';
 
 class ProductCard extends StatelessWidget {
@@ -32,9 +34,17 @@ class ProductCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
+          // Ombre principale plus profonde et élégante
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 12,
+            color: const Color(0xFF1B5E20).withOpacity(0.12),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+            spreadRadius: -5,
+          ),
+          // Ombre secondaire pour plus de profondeur
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
@@ -66,13 +76,18 @@ class ProductCard extends StatelessWidget {
                             top: Radius.circular(16),
                           ),
                           child: product.photoUrl != null
-                              ? Image.network(
-                                  product.photoUrl!,
-                                  width: double.infinity,
-                                  height: double.infinity,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      _buildPlaceholder(),
+                              ? Hero(
+                                  tag: 'product-${product.id}',
+                                  child: CachedNetworkImage(
+                                    imageUrl: product.photoUrl!,
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                    fit: BoxFit.cover,
+                                    placeholder: (context, url) => _buildShimmerPlaceholder(),
+                                    errorWidget: (context, url, error) => _buildPlaceholder(),
+                                    fadeInDuration: const Duration(milliseconds: 300),
+                                    fadeOutDuration: const Duration(milliseconds: 100),
+                                  ),
                                 )
                               : _buildPlaceholder(),
                         ),
@@ -195,6 +210,18 @@ class ProductCard extends StatelessWidget {
         Icons.shopping_bag_outlined,
         size: 48,
         color: Colors.grey.shade400,
+      ),
+    );
+  }
+
+  Widget _buildShimmerPlaceholder() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey.shade300,
+      highlightColor: Colors.grey.shade100,
+      child: Container(
+        width: double.infinity,
+        height: double.infinity,
+        color: Colors.white,
       ),
     );
   }

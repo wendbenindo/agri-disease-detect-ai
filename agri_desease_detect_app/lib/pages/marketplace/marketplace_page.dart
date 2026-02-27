@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
 import '../../model/marketplace/product.dart';
 import '../../model/marketplace/category.dart';
 import '../../services/marketplace/product_repository.dart';
@@ -177,23 +178,7 @@ class _MarketplacePageState extends State<MarketplacePage> {
             child: _isLoading
                 ? _buildSkeletonLoader()
                 : _filteredProducts.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.shopping_bag_outlined,
-                                size: 64, color: Colors.grey.shade400),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Aucun produit trouvé',
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
+                    ? _buildEmptyState()
                     : RefreshIndicator(
                         onRefresh: _loadData,
                         child: GridView.builder(
@@ -344,68 +329,150 @@ class _MarketplacePageState extends State<MarketplacePage> {
       ),
       itemCount: 6,
       itemBuilder: (context, index) {
-        return Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.shade200,
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Image skeleton
-              Container(
-                height: 120,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(16),
-                  ),
+        return Shimmer.fromColors(
+          baseColor: Colors.grey.shade300,
+          highlightColor: Colors.grey.shade100,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF1B5E20).withOpacity(0.08),
+                  blurRadius: 15,
+                  offset: const Offset(0, 8),
+                  spreadRadius: -3,
                 ),
-                child: Center(
-                  child: CircularProgressIndicator(
-                    color: Colors.green.shade700,
-                    strokeWidth: 2,
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Title skeleton
-                    Container(
-                      height: 16,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(4),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Image skeleton
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(16),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    // Price skeleton
-                    Container(
-                      height: 14,
-                      width: 80,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Title skeleton
+                      Container(
+                        height: 16,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      // Price skeleton
+                      Container(
+                        height: 14,
+                        width: 80,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Icône avec cercle coloré
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1B5E20).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.shopping_bag_outlined,
+                size: 60,
+                color: const Color(0xFF1B5E20).withOpacity(0.6),
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // Titre
+            Text(
+              _searchQuery.isNotEmpty 
+                  ? 'Aucun résultat' 
+                  : 'Aucun produit disponible',
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF212121),
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 12),
+            
+            // Description
+            Text(
+              _searchQuery.isNotEmpty
+                  ? 'Essayez avec d\'autres mots-clés'
+                  : 'Les produits apparaîtront ici\nune fois ajoutés par les vendeurs',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.grey.shade600,
+                height: 1.5,
+              ),
+            ),
+            
+            // Bouton d'action (si recherche active)
+            if (_searchQuery.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _searchQuery = '';
+                  });
+                  _filterProducts();
+                },
+                icon: const Icon(Icons.clear),
+                label: const Text('Effacer la recherche'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1B5E20),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

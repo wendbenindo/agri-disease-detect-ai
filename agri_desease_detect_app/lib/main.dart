@@ -6,13 +6,14 @@ import 'dart:io' show Platform;
 import 'package:agri_desease_detect_app/pages/communitypage.dart';
 import 'package:agri_desease_detect_app/pages/profile/profile_page.dart';
 import 'package:agri_desease_detect_app/pages/chat/conversations_list_page.dart';
+import 'package:agri_desease_detect_app/pages/splash_screen.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:geolocator/geolocator.dart';
 
 import 'package:agri_desease_detect_app/widgets/theme.dart';
-import 'package:agri_desease_detect_app/widgets/splashscreen.dart';
+import 'package:agri_desease_detect_app/widgets/splashscreen.dart' as old_splash;
 import 'package:agri_desease_detect_app/pages/homepage.dart';
 import 'package:agri_desease_detect_app/pages/diagnosticpage.dart';
 import 'package:agri_desease_detect_app/pages/marketplace/marketplace_page.dart';
@@ -108,7 +109,9 @@ class TipTigaApp extends StatelessWidget {
       title: 'TipTiga',
       theme: tipTigaTheme,
       debugShowCheckedModeBanner: false,
-      home: const SplashScreen(), // Accès direct sans authentification
+      home: AnimatedSplashScreen(
+        nextScreen: const old_splash.SplashScreen(), // L'ancien splash screen avec la vidéo
+      ),
     );
   }
 }

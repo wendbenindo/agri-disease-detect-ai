@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:shimmer/shimmer.dart';
 import '../../model/marketplace/product.dart';
 import '../../model/marketplace/vendor.dart';
 import '../../services/marketplace/product_repository.dart';
