@@ -435,84 +435,71 @@ class _ProfilePageState extends State<ProfilePage> with AutomaticKeepAliveClient
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    // Icône avec le même style que Messages
                     Container(
-                      padding: const EdgeInsets.all(40),
+                      width: 120,
+                      height: 120,
                       decoration: BoxDecoration(
-                        color: Colors.green.shade50,
+                        color: const Color(0xFF1B5E20).withOpacity(0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        Icons.person_outline,
-                        size: 80,
-                        color: Colors.green.shade300,
+                        Icons.login,
+                        size: 60,
+                        color: const Color(0xFF1B5E20).withOpacity(0.6),
                       ),
                     ),
-                    const SizedBox(height: 32),
-                    Text(
-                      'Non connecté',
+                    const SizedBox(height: 24),
+                    // Titre avec le même style que Messages
+                    const Text(
+                      'Connectez-vous',
                       style: TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade800,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF212121),
+                        letterSpacing: -0.5,
                       ),
                     ),
                     const SizedBox(height: 12),
+                    // Description avec le même style que Messages
                     Text(
-                      'Connectez-vous pour accéder à votre profil et profiter de toutes les fonctionnalités',
+                      'Connectez-vous pour accéder\nà votre profil et vos fonctionnalités',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 15,
                         color: Colors.grey.shade600,
-                        height: 1.6,
+                        height: 1.5,
                       ),
                     ),
-                    const SizedBox(height: 40),
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(14),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.green.shade300,
-                            blurRadius: 12,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      child: ElevatedButton.icon(
-                        onPressed: () async {
-                          final result = await Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => const AuthPage()),
-                          );
-                          // Si connexion réussie, forcer un rebuild complet
-                          if (result == true && mounted) {
-                            setState(() {
-                              _isLoadingRole = true;
-                            });
-                            await _loadUserRole();
-                          }
-                        },
-                        icon: const Icon(Icons.login, size: 22),
-                        label: const Text(
-                          'Se connecter',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.3,
-                          ),
+                    const SizedBox(height: 32),
+                    // Bouton avec le même style que Messages
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const AuthPage()),
+                        );
+                        // Si connexion réussie, forcer un rebuild complet
+                        if (result == true && mounted) {
+                          setState(() {
+                            _isLoadingRole = true;
+                          });
+                          await _loadUserRole();
+                        }
+                      },
+                      icon: const Icon(Icons.login),
+                      label: const Text('Se connecter'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1B5E20),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 14,
                         ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 40,
-                            vertical: 18,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
+                        elevation: 0,
                       ),
                     ),
                   ],
