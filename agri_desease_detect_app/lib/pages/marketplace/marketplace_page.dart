@@ -139,19 +139,83 @@ class _MarketplacePageState extends State<MarketplacePage> {
               ),
             ),
 
-          // Barre de recherche
+          // Barre de recherche moderne
           Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              onChanged: _onSearchChanged,
-              decoration: InputDecoration(
-                hintText: 'Rechercher un produit...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.grey.shade300,
+                  width: 1.5,
                 ),
-                filled: true,
-                fillColor: Colors.grey.shade100,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF1B5E20).withOpacity(0.08),
+                    blurRadius: 20,
+                    offset: const Offset(0, 4),
+                    spreadRadius: -2,
+                  ),
+                ],
+              ),
+              child: TextField(
+                onChanged: _onSearchChanged,
+                style: const TextStyle(
+                  fontSize: 15,
+                  color: Color(0xFF212121),
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Rechercher un produit...',
+                  hintStyle: TextStyle(
+                    color: Colors.grey.shade400,
+                    fontSize: 15,
+                  ),
+                  prefixIcon: Container(
+                    padding: const EdgeInsets.all(12),
+                    child: Icon(
+                      Icons.search,
+                      color: const Color(0xFF1B5E20).withOpacity(0.7),
+                      size: 24,
+                    ),
+                  ),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: Icon(
+                            Icons.clear,
+                            color: Colors.grey.shade400,
+                            size: 20,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _searchQuery = '';
+                            });
+                            _filterProducts();
+                          },
+                        )
+                      : null,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(
+                      color: Color(0xFF1B5E20),
+                      width: 2,
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
+                  ),
+                ),
               ),
             ),
           ),
