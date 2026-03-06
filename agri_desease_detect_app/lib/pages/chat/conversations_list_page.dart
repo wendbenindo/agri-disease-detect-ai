@@ -24,6 +24,7 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
   
   List<Conversation> _conversations = [];
   bool _isLoading = true;
+  bool _hasNetworkError = false;
 
   @override
   void initState() {
@@ -32,7 +33,10 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
   }
 
   Future<void> _loadConversations() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _hasNetworkError = false;
+    });
 
     try {
       final userId = _authService.currentUserId;
@@ -41,6 +45,7 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
         setState(() {
           _conversations = [];
           _isLoading = false;
+          _hasNetworkError = false;
         });
         return;
       }
@@ -50,14 +55,21 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
       setState(() {
         _conversations = conversations;
         _isLoading = false;
+        _hasNetworkError = false;
       });
     } catch (e) {
-      setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e')),
-        );
-      }
+      print('❌ Erreur chargement conversations: $e');
+      
+      // Détecter si c'est une erreur réseau
+      final isNetworkError = e.toString().contains('SocketException') ||
+                            e.toString().contains('Failed host lookup') ||
+                            e.toString().contains('ClientException');
+      
+      setState(() {
+        _conversations = [];
+        _isLoading = false;
+        _hasNetworkError = isNetworkError;
+      });
     }
   }
 
@@ -94,6 +106,72 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
   Widget _buildEmptyState() {
     final isAuthenticated = _authService.isAuthenticated;
     
+    // Si erreur réseau et utilisateur connecté
+    if (_hasNetworkError && isAuthenticated) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.wifi_off,
+                  size: 60,
+                  color: Colors.orange.withOpacity(0.6),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Pas de connexion',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF212121),
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Vérifiez votre connexion internet\net réessayez',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: Colors.grey.shade600,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 32),
+              ElevatedButton.icon(
+                onPressed: _loadConversations,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Réessayer'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 14,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
+    // Écran normal (utilisateur non connecté ou pas de conversations)
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
