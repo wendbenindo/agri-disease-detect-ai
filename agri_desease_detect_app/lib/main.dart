@@ -123,9 +123,6 @@ class SplashScreenWrapper extends StatefulWidget {
 }
 
 class _SplashScreenWrapperState extends State<SplashScreenWrapper> {
-  bool _isLoading = true;
-  bool _shouldShowSplash = true;
-
   @override
   void initState() {
     super.initState();
@@ -136,34 +133,88 @@ class _SplashScreenWrapperState extends State<SplashScreenWrapper> {
     final prefs = await SharedPreferences.getInstance();
     final hasSeenSplash = prefs.getBool('has_seen_splash') ?? false;
 
-    setState(() {
-      _shouldShowSplash = !hasSeenSplash;
-      _isLoading = false;
-    });
-
-    // Marquer comme vu
+    // Marquer comme vu si c'est la première fois
     if (!hasSeenSplash) {
       await prefs.setBool('has_seen_splash', true);
+    }
+
+    // Navigation sans setState pour éviter le rebuild
+    if (mounted) {
+      if (hasSeenSplash) {
+        // Déjà vu, navigation directe
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => const NavigationController(),
+          ),
+        );
+      } else {
+        // Première fois, afficher le splash
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => const SplashScreen(),
+          ),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
+    // Afficher un splash simple pendant la vérification
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF1B5E20),
+              Color(0xFF2E7D32),
+            ],
+          ),
         ),
-      );
-    }
-
-    // Si déjà vu, aller directement à NavigationController
-    if (!_shouldShowSplash) {
-      return const NavigationController();
-    }
-
-    // Sinon, afficher le splash screen
-    return const SplashScreen();
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Logo
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.all(16),
+                child: Image.asset(
+                  'assets/images/tiptiga.png',
+                  fit: BoxFit.contain,
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Indicateur de chargement
+              SizedBox(
+                width: 30,
+                height: 30,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Colors.white.withOpacity(0.8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
