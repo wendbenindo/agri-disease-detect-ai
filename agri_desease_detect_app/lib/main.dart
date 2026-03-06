@@ -6,14 +6,14 @@ import 'dart:io' show Platform;
 import 'package:agri_desease_detect_app/pages/communitypage.dart';
 import 'package:agri_desease_detect_app/pages/profile/profile_page.dart';
 import 'package:agri_desease_detect_app/pages/chat/conversations_list_page.dart';
-import 'package:agri_desease_detect_app/pages/splash_screen.dart';
+import 'package:agri_desease_detect_app/widgets/splashscreen.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:agri_desease_detect_app/widgets/theme.dart';
-import 'package:agri_desease_detect_app/widgets/splashscreen.dart' as old_splash;
 import 'package:agri_desease_detect_app/pages/homepage.dart';
 import 'package:agri_desease_detect_app/pages/diagnosticpage.dart';
 import 'package:agri_desease_detect_app/pages/marketplace/marketplace_page.dart';
@@ -109,10 +109,61 @@ class TipTigaApp extends StatelessWidget {
       title: 'TipTiga',
       theme: tipTigaTheme,
       debugShowCheckedModeBanner: false,
-      home: AnimatedSplashScreen(
-        nextScreen: const old_splash.SplashScreen(), // L'ancien splash screen avec la vidéo
-      ),
+      home: const SplashScreenWrapper(),
     );
+  }
+}
+
+// Wrapper pour gérer l'affichage du splash screen une seule fois
+class SplashScreenWrapper extends StatefulWidget {
+  const SplashScreenWrapper({super.key});
+
+  @override
+  State<SplashScreenWrapper> createState() => _SplashScreenWrapperState();
+}
+
+class _SplashScreenWrapperState extends State<SplashScreenWrapper> {
+  bool _isLoading = true;
+  bool _shouldShowSplash = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkFirstLaunch();
+  }
+
+  Future<void> _checkFirstLaunch() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenSplash = prefs.getBool('has_seen_splash') ?? false;
+
+    setState(() {
+      _shouldShowSplash = !hasSeenSplash;
+      _isLoading = false;
+    });
+
+    // Marquer comme vu
+    if (!hasSeenSplash) {
+      await prefs.setBool('has_seen_splash', true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    // Si déjà vu, aller directement à NavigationController
+    if (!_shouldShowSplash) {
+      return const NavigationController();
+    }
+
+    // Sinon, afficher le splash screen
+    return const SplashScreen();
   }
 }
 
