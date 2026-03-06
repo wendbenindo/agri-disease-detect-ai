@@ -6,10 +6,12 @@ import 'chat_page.dart';
 
 class ConversationsListPage extends StatefulWidget {
   final VoidCallback? onConversationOpened;
+  final Function(int)? onNavigateToTab;
   
   const ConversationsListPage({
     super.key,
     this.onConversationOpened,
+    this.onNavigateToTab,
   });
 
   @override
@@ -35,7 +37,12 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
     try {
       final userId = _authService.currentUserId;
       if (userId == null) {
-        throw Exception('Utilisateur non connecté');
+        // Utilisateur non connecté - pas d'erreur, juste un état vide
+        setState(() {
+          _conversations = [];
+          _isLoading = false;
+        });
+        return;
       }
 
       final conversations = await _chatService.getUserConversations(userId);
@@ -85,6 +92,8 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
   }
 
   Widget _buildEmptyState() {
+    final isAuthenticated = _authService.isAuthenticated;
+    
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -99,15 +108,15 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                Icons.chat_bubble_outline,
+                isAuthenticated ? Icons.chat_bubble_outline : Icons.login,
                 size: 60,
                 color: const Color(0xFF1B5E20).withOpacity(0.6),
               ),
             ),
             const SizedBox(height: 24),
-            const Text(
-              'Aucune conversation',
-              style: TextStyle(
+            Text(
+              isAuthenticated ? 'Aucune conversation' : 'Connectez-vous',
+              style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
                 color: Color(0xFF212121),
@@ -116,7 +125,9 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Contactez un vendeur depuis\nle marketplace pour commencer',
+              isAuthenticated 
+                  ? 'Contactez un vendeur depuis\nle marketplace pour commencer'
+                  : 'Connectez-vous pour accéder\nà vos conversations',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 15,
@@ -125,25 +136,72 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
               ),
             ),
             const SizedBox(height: 32),
-            ElevatedButton.icon(
-              onPressed: () {
-                DefaultTabController.of(context).animateTo(2);
-              },
-              icon: const Icon(Icons.shopping_bag),
-              label: const Text('Voir le Marketplace'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1B5E20),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 14,
+            if (isAuthenticated)
+              ElevatedButton.icon(
+                onPressed: () {
+                  // Naviguer vers le marketplace (index 2)
+                  if (widget.onNavigateToTab != null) {
+                    widget.onNavigateToTab!(2);
+                  }
+                },
+                icon: const Icon(Icons.shopping_bag),
+                label: const Text('Voir le Marketplace'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1B5E20),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 14,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
                 ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 0,
+              )
+            else
+              Column(
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      // Naviguer vers la page de profil (index 4)
+                      if (widget.onNavigateToTab != null) {
+                        widget.onNavigateToTab!(4);
+                      }
+                    },
+                    icon: const Icon(Icons.login),
+                    label: const Text('Se connecter'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1B5E20),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 14,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextButton(
+                    onPressed: () {
+                      // Naviguer vers le marketplace (index 2)
+                      if (widget.onNavigateToTab != null) {
+                        widget.onNavigateToTab!(2);
+                      }
+                    },
+                    child: const Text(
+                      'Découvrir le Marketplace',
+                      style: TextStyle(
+                        color: Color(0xFF1B5E20),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
           ],
         ),
       ),

@@ -204,6 +204,10 @@ class _NavigationControllerState extends State<NavigationController> with Widget
         // Recharger le compteur après avoir ouvert une conversation
         _loadUnreadCount();
       },
+      onNavigateToTab: (index) {
+        // Callback pour naviguer vers un autre onglet
+        _onItemTapped(index);
+      },
     ),
     ProfilePage(key: ValueKey(_profileRebuildKey)),
   ];
