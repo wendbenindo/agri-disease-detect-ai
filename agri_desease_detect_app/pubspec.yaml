@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 2.0.1+3
 
 environment:
   sdk: ^3.7.0
@@ -35,6 +35,12 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   intl: ^0.20.2
+
+  # Packages for online model updates
+  http: ^1.2.1
+  path_provider: ^2.1.3
+  shared_preferences: ^2.2.3
+
   video_player: ^2.9.5
   carousel_slider: ^5.0.0
   image_picker: ^1.1.2
@@ -48,16 +54,26 @@ dependencies:
 
   tflite_flutter: ^0.11.0
   # tflite_flutter_helper: ^0.2.0
-  image: ^3.3.0
+  image: ^4.5.4
   google_fonts: ^6.2.1
   url_launcher: ^6.3.1
   flutter_phone_direct_caller: ^2.2.1
+  supabase_flutter: ^2.10.1
+  connectivity_plus: ^7.0.0
+  crypto: ^3.0.3
+  share_plus: ^10.1.4
+  intl_phone_field: ^3.2.0
+  onesignal_flutter: ^5.2.5
+  shimmer: ^3.0.0
+  cached_network_image: ^3.4.1
   # camera: ^0.9.4+5
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.3.10
 
 
   # The "flutter_lints" package below contains a set of recommended lints to
@@ -79,16 +95,10 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-    - assets/images/téléchargement.jpeg
-    - assets/videos/splash_bg.mp4
-    - assets/images/mildiou.png
-    - assets/images/rouille.png
-    - assets/images/tache_feuille.png
-    - assets/images/mil.png
-    - assets/images/mais.png
-    - assets/images/sorgho.png
     - .env
-    - assets/model/plant_disease_model.tflite
+    - assets/images/
+    - assets/videos/
+    - assets/model/
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
@@ -116,3 +126,21 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# Configuration pour l'icône de l'app
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/images/tiptiga.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/images/tiptiga.png"
+
+# Configuration pour le splash screen natif (icône dans le multitâche)
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: assets/images/tiptiga.png
+  android: true
+  ios: false
+  android_12:
+    image: assets/images/tiptiga.png
+    color: "#FFFFFF"

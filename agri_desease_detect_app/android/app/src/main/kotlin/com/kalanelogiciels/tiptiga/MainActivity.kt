@@ -1,4 +1,4 @@
-package com.example.agri_desease_detect_app
+package com.kalanelogiciels.tiptiga
 
 import io.flutter.embedding.android.FlutterActivity
 

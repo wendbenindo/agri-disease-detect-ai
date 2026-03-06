@@ -1,6 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:agri_desease_detect_app/services/model_update_service.dart';
+import 'package:agri_desease_detect_app/utils/app_data.dart';
 import 'image_analyse_module.dart';
 
 class DiagnosticPage extends StatefulWidget {
@@ -15,6 +18,7 @@ class DiagnosticPage extends StatefulWidget {
 class _DiagnosticPageState extends State<DiagnosticPage> {
   File? _selectedImage;
   List<File> _history = [];
+  final ModelUpdateService _modelUpdateService = ModelUpdateService();
 
   @override
   void initState() {
@@ -99,22 +103,65 @@ class _DiagnosticPageState extends State<DiagnosticPage> {
     );
   }
 
+  void _showModelSelector() async {
+    final models = await _modelUpdateService.listLocalModels();
+    if (!mounted) return;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Sélectionner un modèle',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                if (models.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Text('Aucun modèle local. Vérifiez les mises à jour.'),
+                  )
+                else
+                  ...models.map((m) => ListTile(
+                        leading: const Icon(Icons.memory),
+                        title: Text(m.name),
+                        subtitle: Text('v${m.version}'),
+                        onTap: () async {
+                          Navigator.of(context).pop();
+                          await _modelUpdateService.setCurrentModel(path: m.path, version: m.version, labelsPath: m.labelsPath);
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Modèle sélectionné: ${m.name} (v${m.version})')),
+                          );
+                        },
+                      )),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Diagnostic',
-          style: TextStyle(
-            color: Color(0xFF14532D),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Colors.white,
-        iconTheme: const IconThemeData(color: Color(0xFF14532D)),
+        title: const Text('Diagnostic'),
         centerTitle: true,
-        elevation: 1,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.model_training),
+            tooltip: 'Sélectionner modèle',
+            onPressed: _showModelSelector,
+          ),
           IconButton(
             icon: const Icon(Icons.history),
             onPressed: _showHistoryModal,

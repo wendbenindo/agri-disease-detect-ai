@@ -1,31 +1,76 @@
+import 'package:agri_desease_detect_app/services/supabase_service.dart';
+import 'package:agri_desease_detect_app/services/auth_service.dart';
+import 'package:agri_desease_detect_app/services/chat_service.dart';
+import 'package:agri_desease_detect_app/services/onesignal_service.dart';
 import 'dart:io' show Platform;
 import 'package:agri_desease_detect_app/pages/communitypage.dart';
+import 'package:agri_desease_detect_app/pages/profile/profile_page.dart';
+import 'package:agri_desease_detect_app/pages/chat/conversations_list_page.dart';
+import 'package:agri_desease_detect_app/widgets/splashscreen.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:agri_desease_detect_app/widgets/theme.dart';
-import 'package:agri_desease_detect_app/widgets/splashscreen.dart';
 import 'package:agri_desease_detect_app/pages/homepage.dart';
 import 'package:agri_desease_detect_app/pages/diagnosticpage.dart';
+import 'package:agri_desease_detect_app/pages/marketplace/marketplace_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    if (!kIsWeb) {
-      await dotenv.load(fileName: ".env");
-    } else {
-      await dotenv.load(fileName: "assets/.env");
-    }
+    // Chargement des variables d'environnement
+    await dotenv.load(fileName: ".env");
 
-    await _handleLocationPermission(); // Demande de permission
+    // Initialisations critiques
+    await initSupabase();
+    
+    // Initialiser OneSignal
+    await OneSignalService.initialize();
+    print('✅ OneSignal initialisé');
+    
+    // Initialiser AuthService
+    final authService = AuthService();
+    await authService.initialize();
+    
+    // Lancement de l'application principale
+    runApp(const TipTigaApp());
+    
+    // Permission de localisation en arrière-plan (non bloquant)
+    _handleLocationPermission();
   } catch (e) {
-    debugPrint("Erreur de chargement ou permissions : $e");
+    debugPrint("Erreur critique au démarrage : $e");
+    // En cas d'erreur, on lance une application d'erreur
+    runApp(ErrorApp(error: e.toString()));
   }
+}
 
-  runApp(const TipTigaApp());
+// Widget simple pour afficher une erreur fatale
+class ErrorApp extends StatelessWidget {
+  final String error;
+  const ErrorApp({super.key, required this.error});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        backgroundColor: Colors.red[900],
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              "Erreur critique au démarrage de l'application :\n\n$error",
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 Future<void> _handleLocationPermission() async {
@@ -64,7 +109,111 @@ class TipTigaApp extends StatelessWidget {
       title: 'TipTiga',
       theme: tipTigaTheme,
       debugShowCheckedModeBanner: false,
-      home: const SplashScreen(),
+      home: const SplashScreenWrapper(),
+    );
+  }
+}
+
+// Wrapper pour gérer l'affichage du splash screen une seule fois
+class SplashScreenWrapper extends StatefulWidget {
+  const SplashScreenWrapper({super.key});
+
+  @override
+  State<SplashScreenWrapper> createState() => _SplashScreenWrapperState();
+}
+
+class _SplashScreenWrapperState extends State<SplashScreenWrapper> {
+  @override
+  void initState() {
+    super.initState();
+    _checkFirstLaunch();
+  }
+
+  Future<void> _checkFirstLaunch() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenSplash = prefs.getBool('has_seen_splash') ?? false;
+
+    // Marquer comme vu si c'est la première fois
+    if (!hasSeenSplash) {
+      await prefs.setBool('has_seen_splash', true);
+    }
+
+    // Navigation sans setState pour éviter le rebuild
+    if (mounted) {
+      if (hasSeenSplash) {
+        // Déjà vu, navigation directe
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => const NavigationController(),
+          ),
+        );
+      } else {
+        // Première fois, afficher le splash
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => const SplashScreen(),
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Afficher un splash simple pendant la vérification
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF1B5E20),
+              Color(0xFF2E7D32),
+            ],
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Logo
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.all(16),
+                child: Image.asset(
+                  'assets/images/tiptiga.png',
+                  fit: BoxFit.contain,
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Indicateur de chargement
+              SizedBox(
+                width: 30,
+                height: 30,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Colors.white.withOpacity(0.8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -76,23 +225,114 @@ class NavigationController extends StatefulWidget {
   State<NavigationController> createState() => _NavigationControllerState();
 }
 
-class _NavigationControllerState extends State<NavigationController> {
+class _NavigationControllerState extends State<NavigationController> with WidgetsBindingObserver {
   int _selectedIndex = 0;
+  int _profileRebuildKey = 0; // Compteur pour forcer le rebuild
+  int _unreadMessagesCount = 0; // Compteur de messages non lus
+  final AuthService _authService = AuthService();
 
-  final List<Widget> _pages = const [
-    HomePage(),
-    DiagnosticPage(),
-    CommunityPage(), // tu peux la réactiver plus tard
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    
+    // Écouter les changements d'état d'authentification
+    _authService.authStateNotifier.addListener(_onAuthStateChanged);
+    
+    // Forcer un rebuild initial
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          _profileRebuildKey++;
+        });
+        _loadUnreadCount();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _authService.authStateNotifier.removeListener(_onAuthStateChanged);
+    super.dispose();
+  }
+  
+  void _onAuthStateChanged() {
+    // Quand l'état d'authentification change, forcer un rebuild
+    print('🔔 NavigationController: État d\'authentification changé');
+    if (mounted) {
+      setState(() {
+        _profileRebuildKey++;
+      });
+      _loadUnreadCount();
+    }
+  }
+  
+  Future<void> _loadUnreadCount() async {
+    if (!_authService.isAuthenticated) {
+      setState(() => _unreadMessagesCount = 0);
+      return;
+    }
+    
+    try {
+      final chatService = ChatService();
+      final count = await chatService.getTotalUnreadCount(_authService.currentUserId!);
+      if (mounted) {
+        setState(() => _unreadMessagesCount = count);
+      }
+    } catch (e) {
+      print('❌ Erreur chargement messages non lus: $e');
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Quand l'app revient au premier plan, forcer un rebuild
+    if (state == AppLifecycleState.resumed) {
+      setState(() {
+        _profileRebuildKey++;
+      });
+      _loadUnreadCount();
+    }
+  }
+
+  List<Widget> get _pages => [
+    const HomePage(),
+    const DiagnosticPage(),
+    const MarketplacePage(),
+    ConversationsListPage(
+      key: ValueKey('conversations_$_unreadMessagesCount'),
+      onConversationOpened: () {
+        // Recharger le compteur après avoir ouvert une conversation
+        _loadUnreadCount();
+      },
+      onNavigateToTab: (index) {
+        // Callback pour naviguer vers un autre onglet
+        _onItemTapped(index);
+      },
+    ),
+    ProfilePage(key: ValueKey(_profileRebuildKey)),
   ];
 
   void _onItemTapped(int index) {
     setState(() {
+      // Si on navigue vers le profil, incrémenter la clé pour forcer un rebuild complet
+      if (index == 4 && _selectedIndex != 4) {
+        _profileRebuildKey++;
+      }
+      // Si on navigue vers les messages, recharger le compteur
+      if (index == 3) {
+        _loadUnreadCount();
+      }
       _selectedIndex = index;
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    // Vérifier l'état d'authentification pour déterminer les onglets visibles
+    final isAuthenticated = _authService.isAuthenticated;
+    
     return Scaffold(
       body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
@@ -101,18 +341,62 @@ class _NavigationControllerState extends State<NavigationController> {
         backgroundColor: Colors.white,
         selectedItemColor: Colors.green.shade700,
         unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(
+        type: BottomNavigationBarType.fixed,
+        showSelectedLabels: true,
+        showUnselectedLabels: false, // Masquer les labels non sélectionnés
+        selectedFontSize: 12,
+        items: [
+          const BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Accueil',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.health_and_safety),
             label: 'Diagnostic',
           ),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.shopping_bag),
+            label: 'Marketplace',
+          ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.groups),
-            label: 'Communauté',
+            icon: _unreadMessagesCount > 0
+                ? Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      const Icon(Icons.chat),
+                      Positioned(
+                        right: -6,
+                        top: -6,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 18,
+                            minHeight: 18,
+                          ),
+                          child: Center(
+                            child: Text(
+                              _unreadMessagesCount > 99 ? '99+' : '$_unreadMessagesCount',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : const Icon(Icons.chat),
+            label: 'Messages',
+          ),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profil',
           ),
         ],
       ),

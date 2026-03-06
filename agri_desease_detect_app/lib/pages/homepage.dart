@@ -4,7 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:agri_desease_detect_app/services/weather_service.dart';
+import 'package:agri_desease_detect_app/services/model_update_service.dart';
+import 'dart:async';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:agri_desease_detect_app/model/weather_model.dart';
+import 'package:agri_desease_detect_app/utils/app_data.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -14,59 +18,70 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
-  final List<Map<String, String>> cultures = [
-    {
-      'image': 'assets/images/mil.png',
-      'nom': 'Mil',
-      'description': 'Le mil est une céréale résistante à la sécheresse, cultivée dans les régions semi-arides.',
-      'physionomie': 'Plante herbacée à tige dressée, feuilles linéaires longues et fines.',
-      'conditions': 'Température idéale : 25-35°C. Sols sablonneux bien drainés.',
-      'maladies': 'Charbon du mil, mildiou, insectes foreurs.',
-      'tests': 'Observation des feuilles, reconnaissance par IA via photo.',
-      'conseils': 'Rotation culturale, traitement antifongique, évitez les excès d’eau.'
-    },
-    {
-      'image': 'assets/images/sorgho.png',
-      'nom': 'Sorgho',
-      'description': 'Plante céréalière utilisée pour l’alimentation, le fourrage et les biocarburants.',
-      'physionomie': 'Feuilles larges, inflorescence dense, tige robuste.',
-      'conditions': 'Températures élevées (30-38°C), résistant à la sécheresse.',
-      'maladies': 'Rouille, anthracnose, pourriture des tiges.',
-      'tests': 'Inspection visuelle, symptômes sur les feuilles et les tiges.',
-      'conseils': 'Bonne rotation, semis espacés, variétés résistantes.'
-    },
-    {
-      'image': 'assets/images/mais.png',
-      'nom': 'Maïs',
-      'description': 'Céréale majeure utilisée pour l’alimentation humaine, animale et l’industrie.',
-      'physionomie': 'Grande tige, feuilles larges, épis bien visibles.',
-      'conditions': 'Température idéale : 20-30°C. Sols riches, arrosage régulier.',
-      'maladies': 'Mildiou, fusariose, tache foliaire.',
-      'tests': 'Analyse des feuilles, coloration anormale, photos pour détection.',
-      'conseils': 'Fertilisation équilibrée, surveillance des parasites.'
-    },
-  ];
-
-  final List<Map<String, String>> maladies = [
-    {'image': 'assets/images/mildiou.png', 'nom': 'Mildiou du maïs'},
-    {'image': 'assets/images/rouille.png', 'nom': 'Rouille du sorgho'},
-    {'image': 'assets/images/tache_feuille.png', 'nom': 'Tache foliaire'},
-  ];
+  final ModelUpdateService _modelUpdateService = ModelUpdateService();
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
   WeatherModel? _weather;
   bool _loading = false;
   bool _weatherError = false;
+  String? _modelVersion;
+
+  // Couleurs du thème - dominance blanche avec accent vert foncé
+  static const Color primaryDarkGreen = Color(0xFF1B5E20);
+  static const Color accentGreen = Color(0xFF2E7D32);
+  static const Color lightGray = Color(0xFFF5F5F5);
+  static const Color backgroundColor = Colors.white;
+  static const Color cardColor = Colors.white;
+  static const Color textPrimary = Color(0xFF212121);
+  static const Color textSecondary = Color(0xFF757575);
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _loadWeather();
+    _initModelUpdateListener();
+    _initConnectivityListener();
+    // Nettoyage opportuniste des anciens fichiers
+    _modelUpdateService.cleanupOrphanModelFiles();
+    _loadActivePlantType();
+  }
+
+  void _initConnectivityListener() {
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> result) async {
+      // Si on détecte une connexion et qu'il y avait une erreur météo, on réessaye.
+      if (!result.contains(ConnectivityResult.none) && _weatherError) {
+        _loadWeather();
+      }
+      // Relance un check de MAJ si on vient de se reconnecter
+      if (!result.contains(ConnectivityResult.none)) {
+        await _modelUpdateService.checkForUpdatesUsingCurrentPlant();
+      }
+    });
+  }
+
+  void _initModelUpdateListener() {
+    _modelUpdateService.isUpdateAvailable.addListener(_onModelUpdate);
+    // Offline-first: ne vérifie qu'en présence de connexion
+    Connectivity().checkConnectivity().then((results) async {
+      if (!results.contains(ConnectivityResult.none)) {
+        await _modelUpdateService.checkForUpdatesGlobal();
+      }
+    });
+  }
+
+  void _onModelUpdate() {
+    // S'assure que le dialogue n'est affiché que si le widget est toujours monté
+    if (mounted && _modelUpdateService.isUpdateAvailable.value) {
+      _modelUpdateService.showUpdateDialog(context);
+    }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _modelUpdateService.isUpdateAvailable.removeListener(_onModelUpdate);
+    _connectivitySubscription?.cancel();
     super.dispose();
   }
 
@@ -99,63 +114,542 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   Future<void> _loadWeather() async {
     try {
       final weather = await WeatherService().fetchWeather();
-      setState(() {
-        _weather = weather;
-        _weatherError = false;
-      });
+      if (mounted) {
+        setState(() {
+          _weather = weather;
+          _weatherError = false;
+        });
+      }
     } catch (e) {
       debugPrint('Erreur météo : $e');
-      setState(() => _weatherError = true);
+      if (mounted) {
+        setState(() => _weatherError = true);
+      }
     }
   }
 
-  Widget _weatherInfoTile(IconData icon, String value, String label) {
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Logo TipTiga
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: primaryDarkGreen.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Image.asset(
+                  'assets/images/tiptiga.png',
+                  width: 44,
+                  height: 44,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'TipTiga',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: primaryDarkGreen,
+                  fontFamily: 'SF Pro Display',
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
+          ),
+          // Groupe d'icônes à droite
+          Row(
+            children: [
+              // Icône météo
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: IconButton(
+                  icon: Icon(Icons.wb_sunny_rounded, color: Colors.blue.shade700, size: 22),
+                  onPressed: _showWeatherModal,
+                  padding: const EdgeInsets.all(8),
+                  constraints: const BoxConstraints(),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Icône MAJ modèle avec badge + état de téléchargement
+              ValueListenableBuilder<bool>(
+                valueListenable: _modelUpdateService.isUpdateAvailable,
+                builder: (context, hasUpdate, _) {
+                  return ValueListenableBuilder<bool>(
+                    valueListenable: _modelUpdateService.isDownloading,
+                    builder: (context, downloading, __) {
+                      return Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: IconButton(
+                              icon: const Icon(Icons.system_update_alt_rounded, size: 22),
+                              color: Colors.orange.shade800,
+                              tooltip: downloading ? 'Téléchargement en cours…' : 'Vérifier les mises à jour du modèle',
+                              onPressed: downloading ? null : _manualCheckForUpdates,
+                              padding: const EdgeInsets.all(8),
+                              constraints: const BoxConstraints(),
+                            ),
+                          ),
+                          if (hasUpdate && !downloading)
+                            Positioned(
+                              right: -2,
+                              top: -2,
+                              child: Container(
+                                width: 10,
+                                height: 10,
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ),
+                          if (downloading)
+                            Positioned(
+                              right: -4,
+                              top: -4,
+                              child: SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.orange.shade800,
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  );
+                },
+              ),
+              const SizedBox(width: 12),
+              // Icône caméra
+              Container(
+                decoration: BoxDecoration(
+                  color: primaryDarkGreen,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: primaryDarkGreen.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 22),
+                  onPressed: _takePictureAndNavigate,
+                  padding: const EdgeInsets.all(8),
+                  constraints: const BoxConstraints(),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCulturesList() {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 24, color: const Color(0xFF15803D)),
-        const SizedBox(height: 4),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
-        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Text(
+            'Cultures disponibles',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: textPrimary,
+              fontFamily: 'SF Pro Display',
+            ),
+          ),
+        ),
+        const SizedBox(height: 18),
+        SizedBox(
+          height: 130,
+          child: ListView.builder(
+            padding: const EdgeInsets.only(left: 20),
+            scrollDirection: Axis.horizontal,
+            itemCount: cultures.length,
+            itemBuilder: (context, index) {
+              return GestureDetector(
+                onTap: () => _showCultureDetails(cultures[index]),
+                child: Container(
+                  margin: const EdgeInsets.only(right: 16),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 85,
+                        height: 85,
+                        decoration: BoxDecoration(
+                          color: cardColor,
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(
+                            color: Colors.grey.shade200,
+                            width: 1,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.08),
+                              blurRadius: 15,
+                              offset: const Offset(0, 5),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(22),
+                          child: Image.asset(
+                            cultures[index]['image']!,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            height: double.infinity,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: 85,
+                        child: Text(
+                          cultures[index]['nom']!,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            color: textPrimary,
+                            fontFamily: 'SF Pro Text',
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
       ],
     );
   }
 
-   void _showCultureDetails(Map<String, dynamic> culture) {
+  Future<void> _loadActivePlantType() async {
+    try {
+      final info = await _modelUpdateService.getCurrentModelInfo();
+      if (mounted) {
+        setState(() {
+          _modelVersion = info.version;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Widget _buildModelInfoBar() {
+    final ver = _modelVersion ?? '—';
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.green.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.green.shade200),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.agriculture, color: Color(0xFF1B5E20), size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Modèle: v$ver',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          TextButton.icon(
+            onPressed: _manualCheckForUpdates,
+            icon: const Icon(Icons.refresh, size: 16),
+            label: const Text('Vérifier'),
+          )
+        ],
+      ),
+    );
+  }
+
+  Future<void> _manualCheckForUpdates() async {
+    if (_modelUpdateService.isDownloading.value) return;
+    final results = await Connectivity().checkConnectivity();
+    if (results.contains(ConnectivityResult.none)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Hors ligne. Reconnectez-vous pour vérifier.')),
+        );
+      }
+      return;
+    }
+    await _modelUpdateService.checkForUpdatesGlobal();
+    if (_modelUpdateService.isUpdateAvailable.value) {
+      // Affiche le dialogue si une MAJ est disponible
+      if (mounted) await _modelUpdateService.showUpdateDialog(context);
+      // Après mise à jour potentielle, recharger meta
+      await _loadActivePlantType();
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Aucune mise à jour disponible.')),
+        );
+      }
+    }
+  }
+
+  Widget _buildCarouselSection() {
+    return Column(
+      children: [
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            // Carousel des maladies
+            CarouselSlider(
+              options: CarouselOptions(
+                height: 220,
+                autoPlay: true,
+                autoPlayInterval: const Duration(seconds: 4),
+                viewportFraction: 1.0,
+                enlargeCenterPage: false,
+              ),
+              items: maladies.map((maladie) {
+                return Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Image.asset(
+                      maladie['image']!,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            // Overlay "Comment ça marche"
+            Positioned(
+              bottom: 20,
+              left: 60,
+              right: 60,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.95),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.8),
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 15,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Comment ça marche ?',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: primaryDarkGreen,
+                        fontFamily: 'SF Pro Display',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildStepIcon(Icons.camera_alt_rounded, 'Photo', primaryDarkGreen),
+                        _buildArrow(),
+                        _buildStepIcon(Icons.psychology_rounded, 'Analyse', Colors.blue.shade700),
+                        _buildArrow(),
+                        _buildStepIcon(Icons.medical_services_rounded, 'Soin', Colors.red.shade600),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStepIcon(IconData icon, String label, Color color) {
+    return Column(
+      children: [
+        Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withOpacity(0.3), width: 1.5),
+          ),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            color: textSecondary,
+            fontFamily: 'SF Pro Text',
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildArrow() {
+    return Icon(
+      Icons.arrow_forward_ios_rounded,
+      size: 12,
+      color: Colors.grey[400],
+    );
+  }
+
+  Widget _buildMainActionButton() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      width: double.infinity,
+      height: 58,
+      child: ElevatedButton(
+        onPressed: _takePictureAndNavigate,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primaryDarkGreen,
+          foregroundColor: Colors.white,
+          elevation: 12,
+          shadowColor: primaryDarkGreen.withOpacity(0.4),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.camera_alt_rounded, size: 26),
+            const SizedBox(width: 12),
+            Text(
+              'Analyser une plante',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                fontFamily: 'SF Pro Display',
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Modal météo
+  void _showWeatherModal() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (BuildContext context) {
         return DraggableScrollableSheet(
-          initialChildSize: 0.75,
-          maxChildSize: 0.95,
-          minChildSize: 0.4,
+          initialChildSize: 0.7,
+          maxChildSize: 0.9,
+          minChildSize: 0.5,
           expand: false,
           builder: (_, controller) {
-            return Padding(
-              padding: const EdgeInsets.all(20),
-              child: ListView(
-                controller: controller,
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Column(
                 children: [
-                  Center(
-                    child: CircleAvatar(
-                      radius: 50,
-                      backgroundImage: AssetImage(culture['image']),
+                  Container(
+                    width: 44,
+                    height: 5,
+                    margin: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(3),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Text(culture['nom'],
-                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF15803D))),
-                  const SizedBox(height: 16),
-                  _buildSection("🌾 Description générale", culture['description']),
-                  _buildSection("🌱 Physionomie", culture['physionomie']),
-                  _buildSection("🌤️ Conditions idéales", culture['conditions']),
-                  _buildSection("🦠 Maladies fréquentes", culture['maladies']),
-                  _buildSection("🔍 Méthodes de détection", culture['tests']),
-                  _buildSection("🧠 Conseils pratiques", culture['conseils']),
+                  Expanded(
+                    child: ListView(
+                      controller: controller,
+                      padding: const EdgeInsets.all(24),
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.wb_sunny_rounded, color: primaryDarkGreen, size: 28),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Météo locale',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w700,
+                                color: primaryDarkGreen,
+                                fontFamily: 'SF Pro Display',
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        _weather != null
+                            ? _buildWeatherCard()
+                            : _weatherError
+                                ? _buildWeatherError()
+                                : _buildWeatherLoading(),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             );
@@ -165,16 +659,373 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     );
   }
 
-
-  Widget _buildSection(String title, String content) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+  Widget _buildWeatherCard() {
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: Colors.grey.shade200,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87)),
-          const SizedBox(height: 4),
-          Text(content, style: const TextStyle(fontSize: 14, color: Colors.black87)),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: primaryDarkGreen.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.location_on_rounded,
+                  color: primaryDarkGreen,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Flexible(
+                child: Text(
+                  '${_weather!.city}, ${_weather!.country}',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: primaryDarkGreen,
+                    fontFamily: 'SF Pro Display',
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Container(
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(
+                  color: primaryDarkGreen.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Icon(
+                  Icons.wb_sunny_rounded,
+                  size: 36,
+                  color: primaryDarkGreen,
+                ),
+              ),
+              const SizedBox(width: 18),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${_weather!.temperature.toStringAsFixed(1)}°C',
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w800,
+                        color: primaryDarkGreen,
+                        fontFamily: 'SF Pro Display',
+                      ),
+                    ),
+                    Text(
+                      'Ressenti ${_weather!.feelsLike.toStringAsFixed(1)}°C',
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: textSecondary,
+                        fontFamily: 'SF Pro Text',
+                      ),
+                    ),
+                    Text(
+                      _weather!.description,
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: textSecondary,
+                        fontStyle: FontStyle.italic,
+                        fontFamily: 'SF Pro Text',
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: lightGray,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildWeatherInfoTile(
+                  Icons.air_rounded,
+                  '${_weather!.windSpeed} m/s',
+                  'Vent',
+                ),
+                Container(
+                  width: 1,
+                  height: 40,
+                  color: Colors.grey.shade300,
+                ),
+                _buildWeatherInfoTile(
+                  Icons.water_drop_rounded,
+                  '${_weather!.humidity}%',
+                  'Humidité',
+                ),
+                Container(
+                  width: 1,
+                  height: 40,
+                  color: Colors.grey.shade300,
+                ),
+                _buildWeatherInfoTile(
+                  Icons.visibility_rounded,
+                  '${(_weather!.visibility / 1000).toStringAsFixed(1)} km',
+                  'Visibilité',
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWeatherInfoTile(IconData icon, String value, String label) {
+    return Column(
+      children: [
+        Icon(icon, size: 24, color: primaryDarkGreen),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 14,
+            color: textPrimary,
+            fontFamily: 'SF Pro Text',
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            color: textSecondary,
+            fontFamily: 'SF Pro Text',
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWeatherError() {
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: Colors.red.shade50,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.red.shade200),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(Icons.wifi_off_rounded, color: Colors.red.shade600),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Impossible de charger la météo. Vérifiez votre connexion internet et activez la localisation.',
+                  style: TextStyle(
+                    color: Colors.red.shade700,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'SF Pro Text',
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _loadWeather,
+              icon: const Icon(Icons.refresh_rounded),
+              label: Text(
+                "Réessayer",
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontFamily: 'SF Pro Text',
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryDarkGreen,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWeatherLoading() {
+    return Container(
+      height: 140,
+      decoration: BoxDecoration(
+        color: lightGray,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: Colors.grey.shade200,
+          width: 1,
+        ),
+      ),
+      child: Center(
+        child: CircularProgressIndicator(
+          color: primaryDarkGreen,
+          strokeWidth: 3,
+        ),
+      ),
+    );
+  }
+
+  void _showCultureDetails(Map<String, dynamic> culture) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.75,
+          maxChildSize: 0.95,
+          minChildSize: 0.4,
+          expand: false,
+          builder: (_, controller) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 5,
+                    margin: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView(
+                      controller: controller,
+                      padding: const EdgeInsets.all(26),
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 110,
+                            height: 110,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(28),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.12),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(60),
+                              child: Image.asset(
+                                culture['image'],
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          culture['nom'],
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w800,
+                            color: primaryDarkGreen,
+                            fontFamily: 'SF Pro Display',
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+                        _buildSection("🌾 Description générale", culture['description']),
+                        _buildSection("🌱 Physionomie", culture['physionomie']),
+                        _buildSection("🌤️ Conditions idéales", culture['conditions']),
+                        _buildSection("🦠 Maladies fréquentes", culture['maladies']),
+                        _buildSection("🔍 Méthodes de détection", culture['tests']),
+                        _buildSection("🧠 Conseils pratiques", culture['conseils']),
+                        const SizedBox(height: 28),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildSection(String title, String content) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 18),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: lightGray,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 17,
+              color: primaryDarkGreen,
+              fontFamily: 'SF Pro Display',
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            content,
+            style: TextStyle(
+              fontSize: 15,
+              color: textPrimary,
+              height: 1.5,
+              fontFamily: 'SF Pro Text',
+            ),
+          ),
         ],
       ),
     );
@@ -182,248 +1033,39 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: Stack(
-          children: [
-            SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-    Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('TipTiga',
-                            style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF15803D))),
-                        IconButton(
-                          icon: const Icon(Icons.camera_alt_outlined, color: Color(0xFF15803D)),
-                          onPressed: _takePictureAndNavigate,
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 16),
-                    child: SizedBox(
-                      height: 100,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: cultures.length,
-                        itemBuilder: (context, index) {
-                          return GestureDetector(
-                            onTap: () => _showCultureDetails(cultures[index]),
-                            child: Container(
-                              margin: const EdgeInsets.only(right: 12),
-                              child: Column(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 30,
-                                    backgroundImage: AssetImage(cultures[index]['image']!),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(cultures[index]['nom']!, style: const TextStyle(fontWeight: FontWeight.w600)),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      CarouselSlider(
-                        options: CarouselOptions(height: 180, autoPlay: true, viewportFraction: 1.0),
-                        items: maladies.map((maladie) {
-                          return Image.asset(
-                            maladie['image']!,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                          );
-                        }).toList(),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        margin: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Column(
-                          children: [
-                            const Text('Comment ça marche ?',
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 12),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: const [
-                                Column(
-                                  children: [
-                                    Icon(Icons.add_a_photo_outlined, color: Color(0xFF15803D)),
-                                    Text('Photo'),
-                                  ],
-                                ),
-                                Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
-                                Column(
-                                  children: [
-                                    Icon(Icons.science_outlined, color: Colors.blue),
-                                    Text('Analyse'),
-                                  ],
-                                ),
-                                Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
-                                Column(
-                                  children: [
-                                    Icon(Icons.health_and_safety_outlined, color: Colors.red),
-                                    Text('Traitement'),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 16),
-                  Center(
-                    child: ElevatedButton(
-                      onPressed: _takePictureAndNavigate,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF15803D),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                      ),
-                      child: const Text('Prendre une photo',
-                          style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Météo', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 8),
-                        _weather != null
-                            ? Card(
-                                elevation: 4,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        '${_weather!.city}, ${_weather!.country}',
-                                        style: const TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFF15803D)),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Row(
-                                        children: [
-                                          const Icon(Icons.cloud_outlined, size: 48, color: Color(0xFF15803D)),
-                                          const SizedBox(width: 16),
-                                          Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                '${_weather!.temperature.toStringAsFixed(1)}°C',
-                                                style: const TextStyle(
-                                                  fontSize: 32,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Color(0xFF15803D),
-                                                ),
-                                              ),
-                                              Text(
-                                                'Ressenti ${_weather!.feelsLike.toStringAsFixed(1)}°C. ${_weather!.description}.',
-                                                style: const TextStyle(fontSize: 14, color: Colors.grey),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 12),
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          _weatherInfoTile(Icons.air, '${_weather!.windSpeed} m/s', 'Vent'),
-                                          _weatherInfoTile(Icons.opacity, '${_weather!.humidity}%', 'Humidité'),
-                                          _weatherInfoTile(Icons.visibility, '${(_weather!.visibility / 1000).toStringAsFixed(1)} km', 'Visibilité'),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                            )
-                            : _weatherError
-                                ? Column(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(16),
-                                        decoration: BoxDecoration(
-                                          color: Colors.red.shade50,
-                                          border: Border.all(color: Colors.red.shade100),
-                                          borderRadius: BorderRadius.circular(16),
-                                        ),
-                                        child: Row(
-                                          children: const [
-                                            Icon(Icons.wifi_off, color: Colors.red),
-                                            SizedBox(width: 12),
-                                            Expanded(
-                                              child: Text(
-                                                'Impossible de charger la météo. Vérifiez votre connexion internet ou activez la localisation.',
-                                                style: TextStyle(color: Colors.red, fontWeight: FontWeight.w500),
-                                              ),
-                                            )
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          ElevatedButton.icon(
-                                            onPressed: () => _loadWeather(),
-                                            icon: const Icon(Icons.refresh),
-                                            label: const Text("Réessayer"),
-                                            style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF15803D)),
-                                          ),
-                                        ],
-                                      )
-                                    ],
-                                  )
-                                : const Center(child: CircularProgressIndicator()),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                ],
-              ),
+    return Scaffold(
+      backgroundColor: backgroundColor,
+      body: Stack(
+        children: [
+          SafeArea(
+            child: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(child: _buildHeader()),
+                SliverToBoxAdapter(child: _buildModelInfoBar()),
+                const SliverToBoxAdapter(child: SizedBox(height: 20)),
+                // Carrousel en premier
+                SliverToBoxAdapter(child: _buildCarouselSection()),
+                const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                // Bouton principal juste après le carrousel
+                SliverToBoxAdapter(child: _buildMainActionButton()),
+                const SliverToBoxAdapter(child: SizedBox(height: 28)),
+                // Cultures disponibles
+                SliverToBoxAdapter(child: _buildCulturesList()),
+                const SliverToBoxAdapter(child: SizedBox(height: 40)),
+              ],
             ),
-            if (_loading)
-              Container(
-                color: Colors.black.withOpacity(0.3),
-                child: const Center(
-                  child: CircularProgressIndicator(color: Color(0xFF15803D)),
+          ),
+          if (_loading)
+            Container(
+              color: Colors.black.withOpacity(0.3),
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: primaryDarkGreen,
+                  strokeWidth: 3,
                 ),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
