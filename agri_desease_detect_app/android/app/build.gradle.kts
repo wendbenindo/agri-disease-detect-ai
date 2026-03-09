@@ -33,6 +33,18 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        
+        ndk {
+            abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86_64"))
+        }
+    }
+    
+    // Support des pages mémoire 16KB (requis depuis nov 2025)
+    // AGP 8.5.1+ aligne automatiquement les bibliothèques non compressées sur 16KB
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false  // Utilise les bibliothèques non compressées
+        }
     }
     
     signingConfigs {
